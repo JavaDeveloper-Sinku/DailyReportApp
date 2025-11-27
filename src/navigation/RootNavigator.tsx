@@ -6,7 +6,7 @@ import HomeScreen from '../screens/HomeScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import ReportScreen from '../screens/ReportScreen';
 import NotificationScreen from '../screens/NotificationScreen';
-import TestScreen from '../screens/TestScreen';
+
 import ReportListScreen from '../screens/ReportListScreen';
 import ReportEditScreen from '../screens/ReportEditScreen';
 
@@ -17,7 +17,7 @@ export type RootStackParamList = {
   Profile: undefined;
   Report: undefined;
   Notification: undefined;
-  Test: undefined;
+
   ReportList: undefined;
   ReportEdit: { reportId: string } | undefined;
   
@@ -61,11 +61,7 @@ export default function RootNavigator() {
           component={NotificationScreen} 
           options={{ title: "Notifications" }}
         />
-        <Stack.Screen 
-          name="Test" 
-          component={TestScreen} 
-          options={{ title: "Test Screen" }}
-        />
+      
         <Stack.Screen 
           name="ReportList" 
           component={ReportListScreen} 
