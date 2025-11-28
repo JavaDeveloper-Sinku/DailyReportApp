@@ -72,7 +72,7 @@ DailyReport/
 
 ## 🖼 **Screenshots / App Pictures**
 
-Add your app screenshots here:
+
 <img width="1105" height="718" alt="appUI" src="https://github.com/user-attachments/assets/dc8589c8-8473-4754-a283-133f739bdfd8" />
 
 
