@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import {
   SafeAreaView,
@@ -8,17 +8,25 @@ import {
   StyleSheet,
   FlatList,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Sample recent reports
-const sampleRecentReports = [
-  { id: "RPT-1001", date: "2025-11-28", qty: "500kit" },
-  { id: "RPT-1002", date: "2025-11-27", qty: "300kit" },
-  { id: "RPT-1003", date: "2025-11-26", qty: "600kit" },
-];
+type RecentReport = {
+  id: string;
+  date: string;
+  qty: string;
+};
 
 const DailyReportScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<any>>();
-  const [activeTab, setActiveTab] = useState<"new" | "old">("new");
+  const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
+
+  useEffect(() => {
+    const loadReports = async () => {
+      const storedReports = await AsyncStorage.getItem("recentReports");
+      if (storedReports) setRecentReports(JSON.parse(storedReports));
+    };
+    loadReports();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -41,15 +49,28 @@ const DailyReportScreen: React.FC = () => {
       <View style={styles.recentBox}>
         <Text style={styles.recentTitle}>Recent Reports</Text>
 
+        {recentReports.length === 0 && (
+          <Text style={{ color: "#555", fontStyle: "italic" }}>
+            No reports yet.
+          </Text>
+        )}
+
         <FlatList
-          data={sampleRecentReports}
+          data={recentReports}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.reportItem}>
-              <Text style={styles.reportId}>{item.id}</Text>
-              <Text style={styles.reportDate}>{item.date}</Text>
+            <TouchableOpacity
+              style={styles.reportCard}
+              onPress={() =>
+                navigation.navigate("ReportEdit", { reportId: item.id })
+              }
+            >
+              <View style={styles.reportHeader}>
+                <Text style={styles.reportId}>{item.id}</Text>
+                <Text style={styles.reportDate}>{item.date}</Text>
+              </View>
               <Text style={styles.reportQty}>{item.qty}</Text>
-            </View>
+            </TouchableOpacity>
           )}
         />
       </View>
@@ -68,7 +89,6 @@ const DailyReportScreen: React.FC = () => {
 export default DailyReportScreen;
 
 // ---------------- STYLES ----------------
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -87,13 +107,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 40,
   },
-
   mainButtonText: {
     color: "#fff",
     fontWeight: "700",
     fontSize: 15,
   },
-
   secondaryButton: {
     width: "100%",
     paddingVertical: 16,
@@ -102,7 +120,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginBottom: 20,
   },
-
   secondaryButtonText: {
     color: "#333",
     fontWeight: "600",
@@ -123,16 +140,38 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: "#0f172a",
   },
-  reportItem: {
+
+  // Message-style Report Card
+  reportCard: {
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  reportHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#ccc",
+    marginBottom: 6,
   },
-  reportId: { fontWeight: "600", color: "#111" },
-  reportDate: { color: "#555" },
-  reportQty: { fontWeight: "700", color: "#2BAE8A" },
+  reportId: {
+    fontWeight: "700",
+    color: "#0f172a",
+    fontSize: 14,
+  },
+  reportDate: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  reportQty: {
+    fontWeight: "700",
+    fontSize: 16,
+    color: "#2BAE8A",
+  },
 
   // Floating Button
   floatBtn: {
@@ -146,7 +185,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   floatBtnPlus: {
     fontSize: 32,
     color: "#fff",
