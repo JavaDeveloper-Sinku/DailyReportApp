@@ -73,26 +73,8 @@ DailyReport/
 ## 🖼 **Screenshots / App Pictures**
 
 Add your app screenshots here:
+<img width="1105" height="718" alt="appUI" src="https://github.com/user-attachments/assets/dc8589c8-8473-4754-a283-133f739bdfd8" />
 
-### **Home Screen**
-
-*(Add image here)*
-`![Home Screen](assets/screens/home.png)`
-
-### **Create Report Screen**
-
-*(Add image here)*
-`![Create Report Screen](assets/screens/create.png)`
-
-### **Report List Screen**
-
-*(Add image here)*
-`![Report List Screen](assets/screens/list.png)`
-
-You can place these images inside
-**`/assets/screens/`** folder.
-
----
 
 ## ⚙️ **Installation & Setup**
 
