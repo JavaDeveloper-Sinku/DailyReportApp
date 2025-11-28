@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { NavigationProp, useNavigation } from "@react-navigation/native";
+
 import {
   View,
   Text,
@@ -9,9 +11,10 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import Icon from "react-native-vector-icons/Feather";
 
 export default function ReportScreen() {
+  const navigation = useNavigation<NavigationProp<any>>();
+  
   const [products, setProducts] = useState([
     {
       id: 1,
@@ -55,30 +58,12 @@ export default function ReportScreen() {
   };
 
   const handleSave = () => {
-  Alert.alert("Report Saved", "Your report is successfully generated!");
-
-  console.log("REPORT DATA:", products);
-
-  // RESET ALL FIELDS
-  setProducts((prev) =>
-    prev.map((item) => ({
-      ...item,
-      quantity: "",
-      selectedSize: "500ml",
-    }))
-  );
-};
-
+    Alert.alert("Report Saved", "Your report has been saved successfully.");
+  };
 
   return (
     <ScrollView style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Report</Text>
-        <TouchableOpacity style={styles.profileIcon}>
-          <Icon name="menu" size={26} color="#000" />
-        </TouchableOpacity>
-      </View>
+      {/* HEADER REMOVED */}
 
       {/* TABS */}
       <View style={styles.tabs}>
@@ -86,7 +71,7 @@ export default function ReportScreen() {
           <Text style={styles.tabTextActive}>New Report</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.inactiveTab}>
+        <TouchableOpacity style={styles.inactiveTab} onPress={() => navigation.navigate("ReportList")} >
           <Text style={styles.tabTextInactive}>Old Reports</Text>
         </TouchableOpacity>
       </View>
@@ -99,7 +84,6 @@ export default function ReportScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.productTitle}>{product.name}</Text>
 
-            {/* Sizes */}
             <View style={styles.sizesRow}>
               {product.sizes.map((s) => (
                 <TouchableOpacity
@@ -137,8 +121,7 @@ export default function ReportScreen() {
       <View style={styles.summary}>
         {products.map((p) => (
           <Text key={p.id} style={styles.summaryText}>
-            {p.name} ({p.selectedSize}) ..........{" "}
-            {p.quantity || 0} kit
+            {p.name} ({p.selectedSize}) .......... {p.quantity || 0} kit
           </Text>
         ))}
 
@@ -160,33 +143,16 @@ export default function ReportScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#ffffffff",
     padding: 15,
-    marginTop: 30,
   },
 
-  /* HEADER */
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 10,
-  },
-  headerText: {
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  profileIcon: {
-    padding: 6,
-    borderRadius: 25,
-    backgroundColor: "#fff",
-    elevation: 3,
-  },
+  /* HEADER REMOVED */
 
   /* TABS */
   tabs: {
     flexDirection: "row",
-    marginTop: 20,
+    marginTop: 10,
   },
   activeTab: {
     backgroundColor: "#1abc9c",
@@ -247,7 +213,7 @@ const styles = StyleSheet.create({
   },
 
   /* SUMMARY */
-  summary: { marginTop: 30, paddingHorizontal: 10 },
+  summary: { marginTop: 50, paddingHorizontal: 10 },
   summaryText: { fontSize: 16, marginBottom: 5 },
   line: { height: 1, backgroundColor: "#000", marginVertical: 10 },
   totalText: { fontSize: 18, fontWeight: "700" },

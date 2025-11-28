@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+
 import {
   SafeAreaView,
   View,
@@ -108,27 +109,7 @@ const ReportListScreen: React.FC = () => {
   });
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Report</Text>
-
-        <View style={styles.headerRight}>
-          <View style={styles.productBadge}>
-            <Text style={styles.productBadgeText}>
-              {productCount}
-            </Text>
-          </View>
-
-          <Image
-            source={{
-              uri: "file:///mnt/data/Screenshot 2025-11-24 at 5.18.24 PM.png",
-            }}
-            style={styles.avatar}
-          />
-        </View>
-      </View>
-
+  <SafeAreaView style={styles.safe}>
       {/* Top buttons (New / Old) */}
       <View style={styles.filtersRow}>
         <View style={styles.filterTypes}>
@@ -137,7 +118,7 @@ const ReportListScreen: React.FC = () => {
               styles.typeBtn,
               activeType === "New" && styles.typeBtnActive,
             ]}
-            onPress={() => setActiveType("New")}
+            onPress={() => navigation.navigate("Report")}
           >
             <Text
               style={[
@@ -148,28 +129,7 @@ const ReportListScreen: React.FC = () => {
               New Report
             </Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.typeBtn,
-              activeType === "Old" && styles.typeBtnActive,
-            ]}
-            onPress={() => setActiveType("Old")}
-          >
-            <Text
-              style={[
-                styles.typeBtnText,
-                activeType === "Old" && styles.typeBtnTextActive,
-              ]}
-            >
-              Old Reports
-            </Text>
-          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity style={styles.searchCircle}>
-          <Text style={{ fontSize: 18 }}>🔍</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Range tabs */}
@@ -226,8 +186,7 @@ const ReportListScreen: React.FC = () => {
                   Report Id : {item.id}
                 </Text>
                 <Text style={styles.cardDate}>
-                  Date :{" "}
-                  {new Date(item.date).toLocaleDateString()}
+                  Date : {new Date(item.date).toLocaleDateString()}
                 </Text>
               </View>
 
@@ -238,8 +197,10 @@ const ReportListScreen: React.FC = () => {
           )}
         />
       </View>
-    </SafeAreaView>
-  );
+
+  </SafeAreaView>
+);
+
 };
 
 export default ReportListScreen;
@@ -249,7 +210,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ffffff",
     alignItems: "center",
-    paddingTop: Platform.OS === "android" ? 24 : 0,
+    paddingTop: Platform.OS === "android" ? 15 : 0,
   },
   header: {
     width: width * 0.9,
