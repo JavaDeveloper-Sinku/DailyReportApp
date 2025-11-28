@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
-
 import {
   View,
   Text,
@@ -11,10 +10,11 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
+import { saveReport } from "../utils/fileHelper";
 
 export default function ReportScreen() {
   const navigation = useNavigation<NavigationProp<any>>();
-  
+
   const [products, setProducts] = useState([
     {
       id: 1,
@@ -57,21 +57,39 @@ export default function ReportScreen() {
     );
   };
 
-  const handleSave = () => {
-    Alert.alert("Report Saved", "Your report has been saved successfully.");
+  const handleSave = async () => {
+    const reportData = {
+      date: new Date().toISOString(),
+      products: products.map((p) => ({
+        name: p.name,
+        selectedSize: p.selectedSize,
+        quantity: p.quantity || "0",
+      })),
+    };
+
+    try {
+      await saveReport(reportData);
+      Alert.alert("Report Saved", "Your report has been saved successfully.", [
+        { text: "OK", onPress: () => navigation.navigate("ReportList") },
+      ]);
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Failed to save report. Please try again.");
+    }
   };
 
   return (
     <ScrollView style={styles.container}>
-      {/* HEADER REMOVED */}
-
       {/* TABS */}
       <View style={styles.tabs}>
         <TouchableOpacity style={styles.activeTab}>
           <Text style={styles.tabTextActive}>New Report</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.inactiveTab} onPress={() => navigation.navigate("ReportList")} >
+        <TouchableOpacity
+          style={styles.inactiveTab}
+          onPress={() => navigation.navigate("ReportList")}
+        >
           <Text style={styles.tabTextInactive}>Old Reports</Text>
         </TouchableOpacity>
       </View>
@@ -143,11 +161,9 @@ export default function ReportScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffffff",
+    backgroundColor: "#ffffff",
     padding: 15,
   },
-
-  /* HEADER REMOVED */
 
   /* TABS */
   tabs: {
