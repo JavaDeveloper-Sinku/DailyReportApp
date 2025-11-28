@@ -8,7 +8,8 @@ import {
   StyleSheet,
   FlatList,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { listAllReports } from "../utils/fileHelper";
 
 type RecentReport = {
   id: string;
@@ -20,13 +21,33 @@ const DailyReportScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<any>>();
   const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
 
-  useEffect(() => {
-    const loadReports = async () => {
-      const storedReports = await AsyncStorage.getItem("recentReports");
-      if (storedReports) setRecentReports(JSON.parse(storedReports));
-    };
-    loadReports();
-  }, []);
+  // Load reports from local file system
+useEffect(() => {
+  const loadReports = async () => {
+    try {
+      const reports = await listAllReports();
+      // Transform each report to match RecentReport type
+      const mappedReports = reports.map((r, index) => ({
+        id: r.id || `RPT-${index + 1}`, // agar id nahi hai to auto generate
+        date: r.date || r.createdAt || new Date().toISOString(), // date field check
+        qty: r.total ? `${r.total} kit` : calculateQtyText(r.products),
+      }));
+      setRecentReports(mappedReports);
+    } catch (err) {
+      console.log("Error loading reports:", err);
+    }
+  };
+  loadReports();
+}, []);
+
+// Helper to calculate total quantity from products array
+const calculateQtyText = (products: any[]) => {
+  if (!products) return "0 kit";
+  return products.reduce((sum, p) => sum + (parseInt(p.quantity) || 0), 0) + " kit";
+};
+
+
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -67,7 +88,9 @@ const DailyReportScreen: React.FC = () => {
             >
               <View style={styles.reportHeader}>
                 <Text style={styles.reportId}>{item.id}</Text>
-                <Text style={styles.reportDate}>{item.date}</Text>
+                <Text style={styles.reportDate}>
+                  {new Date(item.date).toLocaleDateString()}
+                </Text>
               </View>
               <Text style={styles.reportQty}>{item.qty}</Text>
             </TouchableOpacity>
@@ -97,7 +120,6 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
 
-  // Main Buttons
   mainButton: {
     width: "100%",
     paddingVertical: 16,
@@ -126,7 +148,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 
-  // Recent Reports Box
   recentBox: {
     backgroundColor: "#f3f4f6",
     borderRadius: 8,
@@ -141,7 +162,6 @@ const styles = StyleSheet.create({
     color: "#0f172a",
   },
 
-  // Message-style Report Card
   reportCard: {
     backgroundColor: "#fff",
     padding: 12,
@@ -173,7 +193,6 @@ const styles = StyleSheet.create({
     color: "#2BAE8A",
   },
 
-  // Floating Button
   floatBtn: {
     position: "absolute",
     right: 20,
