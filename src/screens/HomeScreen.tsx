@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
+  Alert,
 } from "react-native";
 
-import { listAllReports } from "../utils/fileHelper";
+import { listAllReports, deleteReport } from "../utils/fileHelper";
 
 type RecentReport = {
   id: string;
+  fileName: string;
   date: string;
   qty: string;
 };
@@ -21,37 +23,58 @@ const DailyReportScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<any>>();
   const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
 
-  // Load reports from local file system
-useEffect(() => {
+  // Load reports
+  useEffect(() => {
+    loadReports();
+  }, []);
+
   const loadReports = async () => {
     try {
       const reports = await listAllReports();
-      // Transform each report to match RecentReport type
+
       const mappedReports = reports.map((r, index) => ({
-        id: r.id || `RPT-${index + 1}`, // agar id nahi hai to auto generate
-        date: r.date || r.createdAt || new Date().toISOString(), // date field check
-        qty: r.total ? `${r.total} kit` : calculateQtyText(r.products),
+        id: r.id || `RPT-${index + 1}`,
+        fileName: r.fileName,
+        date: r.date || new Date().toISOString(),
+        qty: r.total
+          ? `${r.total} kit`
+          : calculateQtyText(r.products),
       }));
+
       setRecentReports(mappedReports);
     } catch (err) {
-      console.log("Error loading reports:", err);
+      console.log("Error loading:", err);
     }
   };
-  loadReports();
-}, []);
 
-// Helper to calculate total quantity from products array
-const calculateQtyText = (products: any[]) => {
-  if (!products) return "0 kit";
-  return products.reduce((sum, p) => sum + (parseInt(p.quantity) || 0), 0) + " kit";
-};
+  const calculateQtyText = (products: any[]) => {
+    if (!products) return "0 kit";
+    return (
+      products.reduce((sum, p) => sum + (parseInt(p.quantity) || 0), 0) +
+      " kit"
+    );
+  };
 
-
-
+  // Delete function
+  const handleDelete = (fileName: string) => {
+    Alert.alert("Delete Report", "Are you sure?", [
+      { text: "Cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          const success = await deleteReport(fileName);
+          if (success) {
+            loadReports();
+          }
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ---------------- MAIN BUTTONS ---------------- */}
+      {/* Main Buttons */}
       <TouchableOpacity
         style={styles.mainButton}
         onPress={() => navigation.navigate("Report")}
@@ -66,39 +89,55 @@ const calculateQtyText = (products: any[]) => {
         <Text style={styles.secondaryButtonText}>Report_List</Text>
       </TouchableOpacity>
 
-      {/* ---------------- RECENT REPORTS BOX ---------------- */}
+      {/* Recent Reports */}
       <View style={styles.recentBox}>
         <Text style={styles.recentTitle}>Recent Reports</Text>
-
-        {recentReports.length === 0 && (
-          <Text style={{ color: "#555", fontStyle: "italic" }}>
-            No reports yet.
-          </Text>
-        )}
 
         <FlatList
           data={recentReports}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.reportCard}
-              onPress={() =>
-                navigation.navigate("ReportEdit", { reportId: item.id })
-              }
-            >
-              <View style={styles.reportHeader}>
+            <View style={styles.reportCard}>
+              <TouchableOpacity
+                style={{ flex: 1 }}
+                onPress={() =>
+                  navigation.navigate("ReportEdit", {
+                    fileName: item.fileName,
+                  })
+                }
+              >
                 <Text style={styles.reportId}>{item.id}</Text>
                 <Text style={styles.reportDate}>
                   {new Date(item.date).toLocaleDateString()}
                 </Text>
-              </View>
-              <Text style={styles.reportQty}>{item.qty}</Text>
-            </TouchableOpacity>
+                <Text style={styles.reportQty}>{item.qty}</Text>
+              </TouchableOpacity>
+
+              {/* EDIT BUTTON */}
+              <TouchableOpacity
+                style={styles.editBtn}
+                onPress={() =>
+                  navigation.navigate("ReportEdit", {
+                    fileName: item.fileName,
+                  })
+                }
+              >
+                <Text style={styles.editText}>✏️</Text>
+              </TouchableOpacity>
+
+              {/* DELETE BUTTON */}
+              <TouchableOpacity
+                style={styles.deleteBtn}
+                onPress={() => handleDelete(item.fileName)}
+              >
+                <Text style={styles.deleteText}>🗑️</Text>
+              </TouchableOpacity>
+            </View>
           )}
         />
       </View>
 
-      {/* ---------------- FLOATING BUTTON ---------------- */}
+      {/* Floating Button */}
       <TouchableOpacity
         style={styles.floatBtn}
         onPress={() => navigation.navigate("Report")}
@@ -112,36 +151,37 @@ const calculateQtyText = (products: any[]) => {
 export default DailyReportScreen;
 
 // ---------------- STYLES ----------------
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 20,
-    paddingTop: 0,
   },
 
   mainButton: {
-    width: "100%",
-    paddingVertical: 16,
     backgroundColor: "#53BFA5",
+    padding: 16,
     alignItems: "center",
     borderRadius: 6,
-    marginBottom: 10,
     marginTop: 40,
+    marginBottom: 10,
   },
-  mainButtonText: {
-    color: "#fff",
+  mainButtonText: { 
+    color: "#fff", 
     fontWeight: "700",
     fontSize: 15,
   },
+
   secondaryButton: {
-    width: "100%",
-    paddingVertical: 16,
+    padding: 16,
     backgroundColor: "#D9D9D9",
     alignItems: "center",
     borderRadius: 6,
     marginBottom: 20,
   },
+
+  // ⭐ ADD THIS (Missing Style)
   secondaryButtonText: {
     color: "#333",
     fontWeight: "600",
@@ -149,63 +189,50 @@ const styles = StyleSheet.create({
   },
 
   recentBox: {
-    backgroundColor: "#f3f4f6",
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 20,
     flex: 1,
+    backgroundColor: "#f3f4f6",
+    padding: 16,
+    borderRadius: 8,
   },
   recentTitle: {
-    fontSize: 18,
     fontWeight: "700",
-    marginBottom: 12,
-    color: "#0f172a",
+    fontSize: 18,
+    marginBottom: 10,
   },
 
   reportCard: {
+    flexDirection: "row",
     backgroundColor: "#fff",
     padding: 12,
     borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 10,
+    alignItems: "center",
   },
-  reportHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 6,
-  },
-  reportId: {
-    fontWeight: "700",
-    color: "#0f172a",
-    fontSize: 14,
-  },
-  reportDate: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-  reportQty: {
-    fontWeight: "700",
-    fontSize: 16,
-    color: "#2BAE8A",
-  },
+
+  reportId: { fontWeight: "700", fontSize: 14 },
+  reportDate: { fontSize: 12, color: "#666" },
+  reportQty: { fontSize: 16, fontWeight: "700", marginTop: 4 },
+
+  editBtn: { padding: 8, marginLeft: 8 },
+  editText: { fontSize: 20 },
+
+  deleteBtn: { padding: 8, marginLeft: 8 },
+  deleteText: { fontSize: 20, color: "red" },
 
   floatBtn: {
     position: "absolute",
+    bottom: 30,
     right: 20,
-    bottom: 40,
     width: 60,
     height: 60,
     backgroundColor: "#2BAE8A",
     borderRadius: 30,
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
   },
   floatBtnPlus: {
     fontSize: 32,
     color: "#fff",
   },
 });
+

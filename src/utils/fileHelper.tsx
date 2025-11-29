@@ -2,7 +2,9 @@ import * as FileSystem from "expo-file-system/legacy";
 
 const REPORTS_DIR = (FileSystem.documentDirectory || "") + "reports/";
 
+// ------------------------------
 // Ensure reports directory exists
+// ------------------------------
 export const ensureReportsDirExists = async () => {
   const dirInfo = await FileSystem.getInfoAsync(REPORTS_DIR);
   if (!dirInfo.exists) {
@@ -11,44 +13,108 @@ export const ensureReportsDirExists = async () => {
   }
 };
 
-// Get today's file path
-export const getTodayReportPath = () => {
-  const today = new Date();
-  const dateStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
-  return REPORTS_DIR + dateStr + ".json";
+// ------------------------------
+// Generate unique file name
+// ------------------------------
+export const generateReportFilePath = () => {
+  const now = new Date();
+  const date = now.toISOString().split("T")[0]; // YYYY-MM-DD
+  const time = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-MM-SS
+  const fileName = `${date}_${time}.json`;
+  return REPORTS_DIR + fileName;
 };
 
-// Save a report
+// ------------------------------
+// Save a new report 
+// ------------------------------
 export const saveReport = async (reportData: any) => {
   await ensureReportsDirExists();
-  const fileUri = getTodayReportPath();
+
+  const fileUri = generateReportFilePath();
+
   await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(reportData), {
     encoding: FileSystem.EncodingType.UTF8,
   });
+
   console.log("Report saved:", fileUri);
+  return fileUri;
 };
 
-// Read today's report
-export const readReport = async () => {
-  const fileUri = getTodayReportPath();
+// ------------------------------
+// List all reports
+// ------------------------------
+export const listAllReports = async () => {
+  await ensureReportsDirExists();
+
+  const files = await FileSystem.readDirectoryAsync(REPORTS_DIR);
+  const reports: any[] = [];
+
+  for (const file of files) {
+    const filePath = REPORTS_DIR + file;
+    try {
+      const content = await FileSystem.readAsStringAsync(filePath, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      const data = JSON.parse(content);
+      data.fileName = file; // store filename for editing/deleting
+
+      reports.push(data);
+    } catch (err) {
+      console.log("Failed to read file:", file, err);
+    }
+  }
+
+  // latest first
+  return reports.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+};
+
+// ------------------------------
+// Read one report by fileName
+// ------------------------------
+export const readReportByFileName = async (fileName: string) => {
+  const fileUri = REPORTS_DIR + fileName;
   const fileInfo = await FileSystem.getInfoAsync(fileUri);
+
   if (!fileInfo.exists) return null;
+
   const content = await FileSystem.readAsStringAsync(fileUri, {
     encoding: FileSystem.EncodingType.UTF8,
   });
+
   return JSON.parse(content);
 };
 
-// List all reports
-export const listAllReports = async () => {
-  await ensureReportsDirExists();
-  const files = await FileSystem.readDirectoryAsync(REPORTS_DIR);
-  const reports = [];
-  for (const file of files) {
-    const content = await FileSystem.readAsStringAsync(REPORTS_DIR + file, {
+// ------------------------------
+// DELETE a report by file name
+// ------------------------------
+export const deleteReport = async (fileName: string) => {
+  const fileUri = REPORTS_DIR + fileName;
+  const fileInfo = await FileSystem.getInfoAsync(fileUri);
+
+  if (!fileInfo.exists) return false;
+
+  await FileSystem.deleteAsync(fileUri, { idempotent: true });
+  console.log("Deleted report:", fileUri);
+
+  return true;
+};
+
+
+// Save report by overwriting existing file
+export const saveReportByFileName = async (fileName: string, data: any) => {
+  try {
+    const fileUri = REPORTS_DIR + fileName;
+
+    await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(data), {
       encoding: FileSystem.EncodingType.UTF8,
     });
-    reports.push(JSON.parse(content));
+
+    return true;
+  } catch (err) {
+    console.log("Error saving:", err);
+    return false;
   }
-  return reports.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };

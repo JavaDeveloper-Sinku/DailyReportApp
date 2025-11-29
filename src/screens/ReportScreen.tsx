@@ -57,24 +57,34 @@ export default function ReportScreen() {
     );
   };
 
-  const handleSave = async () => {
-    const reportData = {
-      date: new Date().toISOString(),
-      products: products.map((p) => ({
+    const handleSave = async () => {
+    // Filter only selected products (jinki quantity > 0 ho)
+    const selectedProducts = products
+      .filter((p) => parseInt(p.quantity) > 0)
+      .map((p) => ({
         name: p.name,
         selectedSize: p.selectedSize,
-        quantity: p.quantity || "0",
-      })),
+        quantity: p.quantity,
+      }));
+
+    if (selectedProducts.length === 0) {
+      Alert.alert("No Selection", "Please enter quantity for at least one item.");
+      return;
+    }
+
+    const reportData = {
+      date: new Date().toISOString(),
+      products: selectedProducts,   // 👉 ONLY selected items saved
     };
 
     try {
       await saveReport(reportData);
-      Alert.alert("Report Saved", "Your report has been saved successfully.", [
+      Alert.alert("Saved", "Your report has been saved!", [
         { text: "OK", onPress: () => navigation.navigate("ReportList") },
       ]);
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Failed to save report. Please try again.");
+      Alert.alert("Error", "Failed to save report.");
     }
   };
 

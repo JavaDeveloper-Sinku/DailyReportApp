@@ -11,12 +11,13 @@ import {
   Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { listAllReports, readReport } from "../utils/fileHelper";
+import { listAllReports } from "../utils/fileHelper";
 
 const { width } = Dimensions.get("window");
 
 type ReportItem = {
   date: string;
+  fileName: string;
   products: {
     name: string;
     selectedSize: string;
@@ -32,7 +33,7 @@ const ReportListScreen: React.FC = () => {
   const [activeType, setActiveType] = useState<"New" | "Old">("New");
   const [search, setSearch] = useState("");
 
-  // Load all reports from local storage
+  // Load all reports
   const loadReports = async () => {
     const allReports = await listAllReports();
     setReports(allReports);
@@ -56,14 +57,14 @@ const ReportListScreen: React.FC = () => {
   };
 
   // Search and filter
-  let filteredData = filterByRange(reports).filter((item) => {
-    const text = search.toLowerCase().trim();
-    const date = new Date(item.date).toLocaleDateString().toLowerCase();
-    const qtyMatch = item.products.some((p) =>
-      p.quantity.toLowerCase().includes(text)
-    );
-    return date.includes(text) || qtyMatch;
-  });
+ let filteredData = filterByRange(reports).filter((item) => {
+  const text = search.toLowerCase().trim();
+  const date = new Date(item.date).toLocaleDateString().toLowerCase();
+  const qtyMatch = item.products?.some((p) =>
+    p.quantity?.toString().toLowerCase().includes(text)
+  );
+  return date.includes(text) || qtyMatch;
+});
 
   // Sort
   filteredData = filteredData.sort((a, b) => {
@@ -114,32 +115,38 @@ const ReportListScreen: React.FC = () => {
       {/* List */}
       <View style={styles.listWrap}>
         <FlatList
-          data={filteredData}
-          keyExtractor={(item) => item.date}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => navigation.navigate("ReportEdit", { report: item })}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cardTitle}>
-                  Date: {new Date(item.date).toLocaleDateString()}
-                </Text>
-                {item.products.map((p, idx) => (
-                  <Text key={idx} style={styles.cardProduct}>
-                    {p.name} ({p.selectedSize}) : {p.quantity} kit
-                  </Text>
-                ))}
-              </View>
-            </TouchableOpacity>
-          )}
-        />
+  data={filteredData}
+  keyExtractor={(item) => item.fileName || item.date} // fallback added
+  renderItem={({ item }) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() =>
+        navigation.navigate("ReportEdit", {
+          fileName: item.fileName,
+        })
+      }
+    >
+      <View style={{ flex: 1 }}>
+        <Text style={styles.cardTitle}>
+          Date: {new Date(item.date).toLocaleDateString()}
+        </Text>
+        {item.products?.map((p, idx) => (
+          <Text key={idx} style={styles.cardProduct}>
+            {p.name} ({p.selectedSize}) : {p.quantity} kit
+          </Text>
+        ))}
+      </View>
+    </TouchableOpacity>
+  )}
+/>
+
       </View>
     </SafeAreaView>
   );
 };
 
 export default ReportListScreen;
+
 
 const styles = StyleSheet.create({
   safe: {
