@@ -124,6 +124,7 @@ Scan the QR code using **Expo Go** on your mobile device.
 * Edit report feature
 * Export as PDF
 * PIN lock / biometric lock
+* sqlLite Database Using Storing reports
 
 ---
 
