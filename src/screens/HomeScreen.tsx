@@ -88,6 +88,12 @@ const DailyReportScreen: React.FC = () => {
       >
         <Text style={styles.secondaryButtonText}>Report_List</Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.secondaryButton}
+        onPress={() => navigation.navigate("UserForm")}
+      >
+        <Text style={styles.secondaryButtonText}>User_Form</Text>
+      </TouchableOpacity>
 
       {/* Recent Reports */}
       <View style={styles.recentBox}>
