@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import {
   SafeAreaView,
@@ -214,3 +216,4 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 16, fontWeight: "700", marginBottom: 6 },
   cardProduct: { fontSize: 14, color: "#0f172a", marginLeft: 5 },
 });
+

@@ -32,6 +32,9 @@
         "projectId": "aee22662-5491-4eaa-a7dd-ab35abc1ad06"
       }
     },
-    "owner": "wolf01"
+    "owner": "wolf01",
+    "plugins": [
+      "expo-sqlite"
+    ]
   }
 }
