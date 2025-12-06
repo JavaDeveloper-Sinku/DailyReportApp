@@ -12,8 +12,6 @@ DailyReport is a simple and efficient React Native app built with Expo. It helps
 * View all saved reports
 * Edit  & Delete reports
 * Stores: Date & Time
-* 100% Offline storage using **AsyncStorage**
-
 ### ✔ **Available Screens**
 
 1. **Home Screen**
