@@ -57,8 +57,7 @@ export default function ReportScreen() {
     );
   };
 
-    const handleSave = async () => {
-    // Filter only selected products (jinki quantity > 0 ho)
+  const handleSave = async () => {
     const selectedProducts = products
       .filter((p) => parseInt(p.quantity) > 0)
       .map((p) => ({
@@ -74,7 +73,7 @@ export default function ReportScreen() {
 
     const reportData = {
       date: new Date().toISOString(),
-      products: selectedProducts,   // 👉 ONLY selected items saved
+      products: selectedProducts,
     };
 
     try {
@@ -89,22 +88,12 @@ export default function ReportScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* TABS */}
-      <View style={styles.tabs}>
-        <TouchableOpacity style={styles.activeTab}>
-          <Text style={styles.tabTextActive}>New Report</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.inactiveTab}
-          onPress={() => navigation.navigate("ReportList")}
-        >
-          <Text style={styles.tabTextInactive}>Old Reports</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* PRODUCTS */}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 40 }}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* PRODUCT CARDS */}
       {products.map((product) => (
         <View key={product.id} style={styles.card}>
           <Image source={product.image} style={styles.productImage} />
@@ -146,75 +135,54 @@ export default function ReportScreen() {
       ))}
 
       {/* SUMMARY */}
-      <View style={styles.summary}>
+      <View style={styles.summaryContainer}>
+        <Text style={styles.summaryHeading}>Summary</Text>
+
         {products.map((p) => (
-          <Text key={p.id} style={styles.summaryText}>
-            {p.name} ({p.selectedSize}) .......... {p.quantity || 0} kit
-          </Text>
+          <View key={p.id} style={styles.summaryRow}>
+            <Text style={styles.summaryName}>{p.name}</Text>
+
+            <View style={styles.sizeBadge}>
+              <Text style={styles.sizeBadgeText}>{p.selectedSize}</Text>
+            </View>
+
+            <Text style={styles.summaryQty}>{p.quantity || 0} kit</Text>
+          </View>
         ))}
 
-        <View style={styles.line} />
+        <View style={styles.summaryDivider} />
 
-        <Text style={styles.totalText}>
-          Total Quantity .......... {calculateTotal()} kit
-        </Text>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Total Quantity</Text>
+          <Text style={styles.totalValue}>{calculateTotal()} kit</Text>
+        </View>
       </View>
 
       {/* SAVE BUTTON */}
       <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
         <Text style={styles.saveText}>Save</Text>
       </TouchableOpacity>
+
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-    padding: 15,
-  },
-
-  /* TABS */
-  tabs: {
-    flexDirection: "row",
-    marginTop: 10,
-  },
-  activeTab: {
-    backgroundColor: "#1abc9c",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  inactiveTab: {
-    backgroundColor: "#d9d9d9",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-  },
-  tabTextActive: { color: "#fff", fontWeight: "600" },
-  tabTextInactive: { color: "#555", fontWeight: "600" },
+  container: { flex: 1, backgroundColor: "#ffffff", paddingHorizontal: 15, paddingTop: 10 },
 
   /* PRODUCT CARD */
   card: {
     flexDirection: "row",
     backgroundColor: "#fff",
     padding: 15,
-    marginTop: 20,
+    marginBottom: 12,
     borderRadius: 15,
     elevation: 3,
   },
-  productImage: {
-    width: 60,
-    height: 60,
-    marginRight: 15,
-    resizeMode: "contain",
-  },
+  productImage: { width: 60, height: 60, marginRight: 15, resizeMode: "contain" },
   productTitle: { fontSize: 18, fontWeight: "700" },
 
   sizesRow: { flexDirection: "row", marginTop: 10 },
-
   sizeTag: {
     backgroundColor: "#d5f5e3",
     color: "#2e8b57",
@@ -239,18 +207,55 @@ const styles = StyleSheet.create({
   },
 
   /* SUMMARY */
-  summary: { marginTop: 50, paddingHorizontal: 10 },
-  summaryText: { fontSize: 16, marginBottom: 5 },
-  line: { height: 1, backgroundColor: "#000", marginVertical: 10 },
-  totalText: { fontSize: 18, fontWeight: "700" },
+  summaryContainer: {
+    marginTop: 25,
+    backgroundColor: "#f9f9f9",
+    padding: 20,
+    borderRadius: 15,
+    elevation: 3,
+  },
+  summaryHeading: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 15,
+    color: "#333",
+  },
+  summaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  summaryName: {
+    fontSize: 16,
+    fontWeight: "600",
+    width: "45%",
+    color: "#444",
+  },
+  sizeBadge: {
+    backgroundColor: "#1abc9c",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  sizeBadgeText: { color: "#fff", fontWeight: "700", fontSize: 12 },
+  summaryQty: { fontSize: 16, fontWeight: "700", color: "#000" },
 
-  /* SAVE BUTTON */
+  summaryDivider: { height: 1, backgroundColor: "#bbb", marginVertical: 15 },
+
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  totalLabel: { fontSize: 18, fontWeight: "700", color: "#333" },
+  totalValue: { fontSize: 20, fontWeight: "900", color: "#1abc9c" },
+
   saveBtn: {
     backgroundColor: "#1abc9c",
     paddingVertical: 14,
     borderRadius: 30,
     marginTop: 25,
-    marginBottom: 50,
     alignItems: "center",
   },
   saveText: {
