@@ -1,4 +1,5 @@
 import * as FileSystem from "expo-file-system/legacy";
+import { v4 as uuidv4 } from "uuid"; // npm install uuid
 
 const REPORTS_DIR = (FileSystem.documentDirectory || "") + "reports/";
 
@@ -30,6 +31,11 @@ export const generateReportFilePath = () => {
 export const saveReport = async (reportData: any) => {
   await ensureReportsDirExists();
 
+  // Generate reportId if not exists
+  if (!reportData.reportId) {
+    reportData.reportId = uuidv4();
+  }
+
   const fileUri = generateReportFilePath();
 
   await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(reportData), {
@@ -59,6 +65,9 @@ export const listAllReports = async () => {
       const data = JSON.parse(content);
       data.fileName = file; // store filename for editing/deleting
 
+      // Generate reportId if old report doesn't have one
+      if (!data.reportId) data.reportId = uuidv4();
+
       reports.push(data);
     } catch (err) {
       console.log("Failed to read file:", file, err);
@@ -84,7 +93,11 @@ export const readReportByFileName = async (fileName: string) => {
     encoding: FileSystem.EncodingType.UTF8,
   });
 
-  return JSON.parse(content);
+  const data = JSON.parse(content);
+
+  if (!data.reportId) data.reportId = uuidv4();
+
+  return data;
 };
 
 // ------------------------------
@@ -102,10 +115,28 @@ export const deleteReport = async (fileName: string) => {
   return true;
 };
 
+// ------------------------------
+// DELETE helper for screen usage
+// ------------------------------
+export const deleteReportFile = async (fileName: string) => {
+  try {
+    const success = await deleteReport(fileName);
+    if (!success) throw new Error("File does not exist");
+    return true;
+  } catch (err) {
+    console.log("Failed to delete report:", err);
+    return false;
+  }
+};
 
+// ------------------------------
 // Save report by overwriting existing file
+// ------------------------------
 export const saveReportByFileName = async (fileName: string, data: any) => {
   try {
+    // Ensure reportId exists
+    if (!data.reportId) data.reportId = uuidv4();
+
     const fileUri = REPORTS_DIR + fileName;
 
     await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(data), {

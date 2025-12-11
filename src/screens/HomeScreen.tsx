@@ -9,8 +9,8 @@ import {
   FlatList,
   Alert,
 } from "react-native";
-
 import { listAllReports, deleteReport } from "../utils/fileHelper";
+import { Edit2, Trash2 } from "lucide-react-native";
 
 type RecentReport = {
   id: string;
@@ -23,42 +23,46 @@ const DailyReportScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<any>>();
   const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
 
-  // Load reports
   useEffect(() => {
     loadReports();
   }, []);
 
-  const loadReports = async () => {
-    try {
-      const reports = await listAllReports();
+ const loadReports = async () => {
+  try {
+    const reports = await listAllReports();
 
-      const mappedReports = reports.map((r, index) => ({
-        id: r.id || `RPT-${index + 1}`,
-        fileName: r.fileName,
-        date: r.date || new Date().toISOString(),
-        qty: r.total
-          ? `${r.total} kit`
-          : calculateQtyText(r.products),
-      }));
+    const mappedReports = reports.map((r, index) => ({
+      id: r.reportId || `RPT-${index + 1}`, // use reportId if exists
+      fileName: r.fileName,
+      date: r.date || new Date().toISOString(),
+      qty: r.total
+        ? `${r.total} kit`
+        : calculateQtyText(r.products),
+    }));
 
-      setRecentReports(mappedReports);
-    } catch (err) {
-      console.log("Error loading:", err);
-    }
-  };
+    setRecentReports(mappedReports);
+  } catch (err) {
+    console.log("Error loading:", err);
+  }
+};
 
-  const calculateQtyText = (products: any[]) => {
-    if (!products) return "0 kit";
-    return (
-      products.reduce((sum, p) => sum + (parseInt(p.quantity) || 0), 0) +
-      " kit"
-    );
-  };
+const calculateQtyText = (products: any[]) => {
+  if (!products) return "0 kit";
+  let totalQty = products.reduce(
+    (sum, p) => sum + (parseInt(p.quantity) || 0),
+    0
+  );
+  let totalCapacity = products.reduce(
+    (sum, p) => sum + (parseInt(p.capacity) || 0),
+    0
+  );
+  return `${totalQty} kit (Capacity: ${totalCapacity})`;
+};
 
-  // Delete function
+  // Delete report
   const handleDelete = (fileName: string) => {
     Alert.alert("Delete Report", "Are you sure?", [
-      { text: "Cancel" },
+      { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
         style: "destructive",
@@ -107,9 +111,7 @@ const DailyReportScreen: React.FC = () => {
               <TouchableOpacity
                 style={{ flex: 1 }}
                 onPress={() =>
-                  navigation.navigate("ReportEdit", {
-                    fileName: item.fileName,
-                  })
+                  navigation.navigate("ReportEdit", { fileName: item.fileName })
                 }
               >
                 <Text style={styles.reportId}>{item.id}</Text>
@@ -119,24 +121,22 @@ const DailyReportScreen: React.FC = () => {
                 <Text style={styles.reportQty}>{item.qty}</Text>
               </TouchableOpacity>
 
-              {/* EDIT BUTTON */}
+              {/* Edit Icon */}
               <TouchableOpacity
-                style={styles.editBtn}
+                style={styles.iconBtn}
                 onPress={() =>
-                  navigation.navigate("ReportEdit", {
-                    fileName: item.fileName,
-                  })
+                  navigation.navigate("ReportEdit", { fileName: item.fileName })
                 }
               >
-                <Text style={styles.editText}>✏️</Text>
+                <Edit2 size={22} color="#1abc9c" />
               </TouchableOpacity>
 
-              {/* DELETE BUTTON */}
+              {/* Delete Icon */}
               <TouchableOpacity
-                style={styles.deleteBtn}
+                style={styles.iconBtn}
                 onPress={() => handleDelete(item.fileName)}
               >
-                <Text style={styles.deleteText}>🗑️</Text>
+                <Trash2 size={22} color="#e74c3c" />
               </TouchableOpacity>
             </View>
           )}
@@ -155,8 +155,6 @@ const DailyReportScreen: React.FC = () => {
 };
 
 export default DailyReportScreen;
-
-// ---------------- STYLES ----------------
 
 const styles = StyleSheet.create({
   container: {
@@ -186,8 +184,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginBottom: 20,
   },
-
-  // ⭐ ADD THIS (Missing Style)
   secondaryButtonText: {
     color: "#333",
     fontWeight: "600",
@@ -213,17 +209,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 10,
     alignItems: "center",
+    justifyContent: "space-between",
   },
 
   reportId: { fontWeight: "700", fontSize: 14 },
   reportDate: { fontSize: 12, color: "#666" },
   reportQty: { fontSize: 16, fontWeight: "700", marginTop: 4 },
 
-  editBtn: { padding: 8, marginLeft: 8 },
-  editText: { fontSize: 20 },
-
-  deleteBtn: { padding: 8, marginLeft: 8 },
-  deleteText: { fontSize: 20, color: "red" },
+  iconBtn: { padding: 8, marginLeft: 8 },
 
   floatBtn: {
     position: "absolute",
@@ -241,4 +234,3 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
 });
-

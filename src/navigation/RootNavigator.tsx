@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   Modal,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+
+import { Menu, Notebook } from "lucide-react-native";
 
 import HomeScreen from "../screens/HomeScreen";
 import ReportScreen from "../screens/ReportScreen";
@@ -44,20 +45,19 @@ const CustomHeader = () => {
     <>
       <View style={styles.headerContainer}>
 
-        {/* LEFT NOTES ICON */}
+        {/* -------- LEFT NOTES ICON (Go to Home) ---------- */}
         <TouchableOpacity
           style={styles.leftIcon}
           onPress={() => navigateTo("Home")}
         >
-          <Ionicons name="document-text-outline" size={30} color="black" />
+          <Notebook size={32} color="black" />
         </TouchableOpacity>
 
-        {/* TITLE */}
         <Text style={styles.headerTitle}>Daily Report</Text>
 
-        {/* RIGHT MENU ICON */}
+        {/* -------- RIGHT MENU ICON ---------- */}
         <TouchableOpacity style={styles.menuIcon} onPress={openMenu}>
-          <Ionicons name="menu" size={32} color="black" />
+          <Menu size={32} color="black" />
         </TouchableOpacity>
       </View>
 
@@ -65,6 +65,7 @@ const CustomHeader = () => {
       <Modal transparent visible={menuVisible} animationType="fade">
         <TouchableOpacity style={styles.menuOverlay} onPress={closeMenu}>
           <View style={styles.menuBox}>
+
             <TouchableOpacity onPress={() => navigateTo("Home")}>
               <Text style={styles.menuItem}>Home</Text>
             </TouchableOpacity>
@@ -80,6 +81,7 @@ const CustomHeader = () => {
             <TouchableOpacity onPress={() => navigateTo("UserForm")}>
               <Text style={styles.menuItem}>User Form</Text>
             </TouchableOpacity>
+
           </View>
         </TouchableOpacity>
       </Modal>
@@ -118,6 +120,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     justifyContent: "center",
   },
+
   headerTitle: {
     fontSize: 26,
     fontWeight: "700",

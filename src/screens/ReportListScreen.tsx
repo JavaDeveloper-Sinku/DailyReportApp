@@ -11,20 +11,27 @@ import {
   Dimensions,
   TextInput,
   Platform,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { listAllReports } from "../utils/fileHelper";
+import { listAllReports, deleteReportFile } from "../utils/fileHelper";
+import { Edit2, Trash2 } from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 
+type Product = {
+  name: string;
+  selectedSize: string;
+  quantity: number;
+  capacity?: number;
+};
+
 type ReportItem = {
+  reportId?: string;
   date: string;
   fileName: string;
-  products: {
-    name: string;
-    selectedSize: string;
-    quantity: string;
-  }[];
+  total?: number;
+  products: Product[];
 };
 
 const ReportListScreen: React.FC = () => {
@@ -32,10 +39,8 @@ const ReportListScreen: React.FC = () => {
 
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [activeRange, setActiveRange] = useState<"All" | "Weekly" | "Monthly">("Weekly");
-  const [activeType, setActiveType] = useState<"New" | "Old">("New");
   const [search, setSearch] = useState("");
 
-  // Load all reports
   const loadReports = async () => {
     const allReports = await listAllReports();
     setReports(allReports);
@@ -45,7 +50,6 @@ const ReportListScreen: React.FC = () => {
     loadReports();
   }, []);
 
-  // Filter by range
   const filterByRange = (data: ReportItem[]) => {
     const now = new Date();
     if (activeRange === "All") return data;
@@ -58,36 +62,43 @@ const ReportListScreen: React.FC = () => {
     });
   };
 
-  // Search and filter
- let filteredData = filterByRange(reports).filter((item) => {
-  const text = search.toLowerCase().trim();
-  const date = new Date(item.date).toLocaleDateString().toLowerCase();
-  const qtyMatch = item.products?.some((p) =>
-    p.quantity?.toString().toLowerCase().includes(text)
-  );
-  return date.includes(text) || qtyMatch;
-});
-
-  // Sort
-  filteredData = filteredData.sort((a, b) => {
-    if (activeType === "New") return new Date(b.date).getTime() - new Date(a.date).getTime();
-    else return new Date(a.date).getTime() - new Date(b.date).getTime();
+  let filteredData = filterByRange(reports).filter((item) => {
+    const text = search.toLowerCase().trim();
+    const date = new Date(item.date).toLocaleDateString().toLowerCase();
+    const qtyMatch = item.products?.some((p) =>
+      p.quantity?.toString().toLowerCase().includes(text)
+    );
+    const idMatch = item.reportId?.toLowerCase().includes(text);
+    return date.includes(text) || qtyMatch || idMatch;
   });
+
+  filteredData = filteredData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const handleDelete = (fileName: string) => {
+    Alert.alert(
+      "Delete Report",
+      "Are you sure you want to delete this report?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            await deleteReportFile(fileName);
+            loadReports();
+          },
+        },
+      ]
+    );
+  };
+
+  const calculateTotalQty = (report: ReportItem) => {
+    if (report.total) return report.total;
+    return report.products?.reduce((sum, p) => sum + (p.quantity || 0), 0) || 0;
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Top buttons */}
-      <View style={styles.filtersRow}>
-        <TouchableOpacity
-          style={[styles.typeBtn, activeType === "New" && styles.typeBtnActive]}
-          onPress={() => navigation.navigate("Report")}
-        >
-          <Text style={[styles.typeBtnText, activeType === "New" && styles.typeBtnTextActive]}>
-            New Report
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Range Tabs */}
       <View style={styles.rangeRow}>
         {(["All", "Weekly", "Monthly"] as const).map((r) => (
@@ -117,38 +128,64 @@ const ReportListScreen: React.FC = () => {
       {/* List */}
       <View style={styles.listWrap}>
         <FlatList
-  data={filteredData}
-  keyExtractor={(item) => item.fileName || item.date} // fallback added
-  renderItem={({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() =>
-        navigation.navigate("ReportEdit", {
-          fileName: item.fileName,
-        })
-      }
-    >
-      <View style={{ flex: 1 }}>
-        <Text style={styles.cardTitle}>
-          Date: {new Date(item.date).toLocaleDateString()}
-        </Text>
-        {item.products?.map((p, idx) => (
-          <Text key={idx} style={styles.cardProduct}>
-            {p.name} ({p.selectedSize}) : {p.quantity} kit
-          </Text>
-        ))}
-      </View>
-    </TouchableOpacity>
-  )}
-/>
+          data={filteredData}
+          keyExtractor={(item) => item.fileName || item.date}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <TouchableOpacity
+                style={{ flex: 1 }}
+                onPress={() =>
+                  navigation.navigate("ReportEdit", { fileName: item.fileName })
+                }
+              >
+                <Text style={styles.cardTitle}>Report ID: {item.reportId || item.fileName}</Text>
+                <Text style={styles.cardTitle}>
+                  Date: {new Date(item.date).toLocaleDateString()}
+                </Text>
+                <Text style={styles.cardTitle}>
+                  Total Quantity: {calculateTotalQty(item)} kit
+                </Text>
+                {item.products?.map((p, idx) => (
+                  <View key={idx} style={{ marginLeft: 5, marginTop: 4 }}>
+                    <Text style={styles.cardProduct}>
+                      {p.name} ({p.selectedSize}) : {p.quantity} kit
+                    </Text>
+                    {p.capacity !== undefined && (
+                      <Text style={{ fontSize: 12, color: "#888" }}>
+                        Capacity: {p.capacity} kit
+                      </Text>
+                    )}
+                  </View>
+                ))}
+              </TouchableOpacity>
 
+              {/* Edit + Delete icons */}
+              <View style={styles.iconRow}>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("ReportEdit", { fileName: item.fileName })
+                  }
+                  style={styles.iconBtn}
+                >
+                  <Edit2 size={22} color="#1abc9c" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handleDelete(item.fileName)}
+                  style={styles.iconBtn}
+                >
+                  <Trash2 size={22} color="#e74c3c" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        />
       </View>
     </SafeAreaView>
   );
 };
 
 export default ReportListScreen;
-
 
 const styles = StyleSheet.create({
   safe: {
@@ -157,21 +194,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: Platform.OS === "android" ? 15 : 0,
   },
-  filtersRow: {
-    width: width * 0.9,
-    marginTop: 6,
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  typeBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: "#eef2f4",
-    borderRadius: 20,
-  },
-  typeBtnActive: { backgroundColor: "#2f8a6d" },
-  typeBtnText: { color: "#374151", fontWeight: "600" },
-  typeBtnTextActive: { color: "#fff" },
 
   rangeRow: {
     width: width * 0.9,
@@ -184,12 +206,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 999,
     backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#2f8a6d",
   },
   rangeTabActive: { backgroundColor: "#2f8a6d" },
-  rangeText: { color: "#6b7280", fontWeight: "700" },
+  rangeText: { color: "#2f8a6d", fontWeight: "700" },
   rangeTextActive: { color: "#fff" },
 
-  searchInputWrap: { width: width * 0.9, marginTop: 10 },
+  searchInputWrap: { width: width * 0.9, marginTop: 12 },
   searchInput: {
     height: 42,
     borderRadius: 999,
@@ -198,7 +222,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  listWrap: { width: width * 0.9, marginTop: 12, flex: 1 },
+  listWrap: { width: width * 0.9, marginTop: 15, flex: 1 },
 
   card: {
     width: "100%",
@@ -207,13 +231,18 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 14,
     marginBottom: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 2,
   },
-  cardTitle: { fontSize: 16, fontWeight: "700", marginBottom: 6 },
-  cardProduct: { fontSize: 14, color: "#0f172a", marginLeft: 5 },
-});
+  cardTitle: { fontSize: 16, fontWeight: "700", marginBottom: 4 },
+  cardProduct: { fontSize: 14, color: "#0f172a" },
 
+  iconRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  iconBtn: { padding: 4 },
+});
