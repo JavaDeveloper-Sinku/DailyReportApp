@@ -15,13 +15,14 @@ import HomeScreen from "../screens/HomeScreen";
 import ReportScreen from "../screens/ReportScreen";
 import ReportListScreen from "../screens/ReportListScreen";
 import ReportEditScreen from "../screens/ReportEditScreen";
-import UserForm from "../screens/UserForm";
+import AnalysisScreen  from "../screens/AnalysisScreen";
 
 export type RootStackParamList = {
   Home: undefined;
   Report: undefined;
   ReportList: undefined;
-  UserForm: undefined;
+  Analysis: undefined;
+
   ReportEdit: { reportId: string } | undefined;
 };
 
@@ -78,9 +79,11 @@ const CustomHeader = () => {
               <Text style={styles.menuItem}>View Reports</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigateTo("UserForm")}>
-              <Text style={styles.menuItem}>User Form</Text>
+            <TouchableOpacity onPress={() => navigateTo("Analysis")}>
+              <Text style={styles.menuItem}>Analysis</Text>
             </TouchableOpacity>
+
+            
 
           </View>
         </TouchableOpacity>
@@ -103,7 +106,7 @@ export default function RootNavigator() {
         <Stack.Screen name="Report" component={ReportScreen} />
         <Stack.Screen name="ReportList" component={ReportListScreen} />
         <Stack.Screen name="ReportEdit" component={ReportEditScreen} />
-        <Stack.Screen name="UserForm" component={UserForm} />
+        <Stack.Screen name="Analysis" component={AnalysisScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

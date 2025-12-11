@@ -19,24 +19,14 @@ import { Edit2, Trash2 } from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 
-type Product = {
-  name: string;
-  selectedSize: string;
-  quantity: number;
-  capacity?: number;
-};
-
 type ReportItem = {
-  reportId?: string;
   date: string;
   fileName: string;
   total?: number;
-  products: Product[];
 };
 
 const ReportListScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [activeRange, setActiveRange] = useState<"All" | "Weekly" | "Monthly">("Weekly");
   const [search, setSearch] = useState("");
@@ -65,11 +55,7 @@ const ReportListScreen: React.FC = () => {
   let filteredData = filterByRange(reports).filter((item) => {
     const text = search.toLowerCase().trim();
     const date = new Date(item.date).toLocaleDateString().toLowerCase();
-    const qtyMatch = item.products?.some((p) =>
-      p.quantity?.toString().toLowerCase().includes(text)
-    );
-    const idMatch = item.reportId?.toLowerCase().includes(text);
-    return date.includes(text) || qtyMatch || idMatch;
+    return date.includes(text);
   });
 
   filteredData = filteredData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -92,11 +78,6 @@ const ReportListScreen: React.FC = () => {
     );
   };
 
-  const calculateTotalQty = (report: ReportItem) => {
-    if (report.total) return report.total;
-    return report.products?.reduce((sum, p) => sum + (p.quantity || 0), 0) || 0;
-  };
-
   return (
     <SafeAreaView style={styles.safe}>
       {/* Range Tabs */}
@@ -117,7 +98,7 @@ const ReportListScreen: React.FC = () => {
       {/* Search */}
       <View style={styles.searchInputWrap}>
         <TextInput
-          placeholder="Search reports..."
+          placeholder="Search by date..."
           placeholderTextColor="#6b7280"
           style={styles.searchInput}
           value={search}
@@ -138,25 +119,12 @@ const ReportListScreen: React.FC = () => {
                   navigation.navigate("ReportEdit", { fileName: item.fileName })
                 }
               >
-                <Text style={styles.cardTitle}>Report ID: {item.reportId || item.fileName}</Text>
                 <Text style={styles.cardTitle}>
                   Date: {new Date(item.date).toLocaleDateString()}
                 </Text>
                 <Text style={styles.cardTitle}>
-                  Total Quantity: {calculateTotalQty(item)} kit
+                  Total Quantity: {item.total || 0} kit
                 </Text>
-                {item.products?.map((p, idx) => (
-                  <View key={idx} style={{ marginLeft: 5, marginTop: 4 }}>
-                    <Text style={styles.cardProduct}>
-                      {p.name} ({p.selectedSize}) : {p.quantity} kit
-                    </Text>
-                    {p.capacity !== undefined && (
-                      <Text style={{ fontSize: 12, color: "#888" }}>
-                        Capacity: {p.capacity} kit
-                      </Text>
-                    )}
-                  </View>
-                ))}
               </TouchableOpacity>
 
               {/* Edit + Delete icons */}
@@ -241,7 +209,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardTitle: { fontSize: 16, fontWeight: "700", marginBottom: 4 },
-  cardProduct: { fontSize: 14, color: "#0f172a" },
 
   iconRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   iconBtn: { padding: 4 },

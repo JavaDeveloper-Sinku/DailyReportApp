@@ -20,51 +20,55 @@ export default function ReportScreen() {
       id: 1,
       name: "Water Bottle",
       sizes: ["500ml", "100ml", "50ml", "10ml"],
-      selectedSize: "500ml",
-      quantity: "",
+      quantityBySize: {} as Record<string, string>,
       image: require("../../assets/water-bottle.png"),
     },
     {
       id: 2,
       name: "Water Pouch",
       sizes: ["500ml", "100ml", "50ml", "10ml"],
-      selectedSize: "500ml",
-      quantity: "",
+      quantityBySize: {} as Record<string, string>,
       image: require("../../assets/water-pouch.png"),
     },
   ]);
 
-  const handleQuantityChange = (id: number, value: string) => {
+  const handleQuantityChange = (id: number, size: string, value: string) => {
     setProducts((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity: value } : item
-      )
-    );
-  };
-
-  const changeSize = (id: number, size: string) => {
-    setProducts((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, selectedSize: size } : item
+      prev.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              quantityBySize: { ...p.quantityBySize, [size]: value },
+            }
+          : p
       )
     );
   };
 
   const calculateTotal = () => {
     return products.reduce(
-      (sum, p) => sum + (parseInt(p.quantity) || 0),
+      (sum, p) =>
+        sum +
+        Object.values(p.quantityBySize).reduce(
+          (s, q) => s + (parseInt(q) || 0),
+          0
+        ),
       0
     );
   };
 
   const handleSave = async () => {
     const selectedProducts = products
-      .filter((p) => parseInt(p.quantity) > 0)
-      .map((p) => ({
-        name: p.name,
-        selectedSize: p.selectedSize,
-        quantity: p.quantity,
-      }));
+      .map((p) =>
+        p.sizes
+          .map((size) => ({
+            name: p.name,
+            selectedSize: size,
+            quantity: parseInt(p.quantityBySize[size] || "0"),
+          }))
+          .filter((x) => x.quantity > 0)
+      )
+      .flat();
 
     if (selectedProducts.length === 0) {
       Alert.alert("No Selection", "Please enter quantity for at least one item.");
@@ -73,6 +77,7 @@ export default function ReportScreen() {
 
     const reportData = {
       date: new Date().toISOString(),
+      total: selectedProducts.reduce((sum, p) => sum + p.quantity, 0),
       products: selectedProducts,
     };
 
@@ -93,43 +98,33 @@ export default function ReportScreen() {
       contentContainerStyle={{ paddingBottom: 40 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* PRODUCT CARDS */}
       {products.map((product) => (
         <View key={product.id} style={styles.card}>
           <Image source={product.image} style={styles.productImage} />
-
           <View style={{ flex: 1 }}>
             <Text style={styles.productTitle}>{product.name}</Text>
 
-            <View style={styles.sizesRow}>
-              {product.sizes.map((s) => (
-                <TouchableOpacity
-                  key={s}
-                  onPress={() => changeSize(product.id, s)}
-                >
-                  <Text
-                    style={[
-                      styles.sizeTag,
-                      product.selectedSize === s && styles.activeSizeTag,
-                    ]}
-                  >
-                    {s}
-                  </Text>
-                </TouchableOpacity>
+            {/* Horizontal Sizes + Quantity */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginTop: 10 }}
+            >
+              {product.sizes.map((size) => (
+                <View key={size} style={styles.sizeInputBox}>
+                  <Text style={styles.sizeLabel}>{size}</Text>
+                  <TextInput
+                    placeholder="Qty"
+                    style={styles.sizeInput}
+                    keyboardType="numeric"
+                    value={product.quantityBySize[size] || ""}
+                    onChangeText={(text) =>
+                      handleQuantityChange(product.id, size, text)
+                    }
+                  />
+                </View>
               ))}
-            </View>
-
-            <Text style={styles.qtyText}>Quantity</Text>
-            <TextInput
-              placeholder="Enter Quantity"
-              style={styles.input}
-              placeholderTextColor="#999"
-              keyboardType="numeric"
-              value={product.quantity}
-              onChangeText={(text) =>
-                handleQuantityChange(product.id, text)
-              }
-            />
+            </ScrollView>
           </View>
         </View>
       ))}
@@ -137,18 +132,21 @@ export default function ReportScreen() {
       {/* SUMMARY */}
       <View style={styles.summaryContainer}>
         <Text style={styles.summaryHeading}>Summary</Text>
-
-        {products.map((p) => (
-          <View key={p.id} style={styles.summaryRow}>
-            <Text style={styles.summaryName}>{p.name}</Text>
-
-            <View style={styles.sizeBadge}>
-              <Text style={styles.sizeBadgeText}>{p.selectedSize}</Text>
-            </View>
-
-            <Text style={styles.summaryQty}>{p.quantity || 0} kit</Text>
-          </View>
-        ))}
+        {products.map((p) =>
+          p.sizes.map((size) =>
+            (parseInt(p.quantityBySize[size] || "0") || 0) > 0 ? (
+              <View key={p.id + size} style={styles.summaryRow}>
+                <Text style={styles.summaryName}>{p.name}</Text>
+                <View style={styles.sizeBadge}>
+                  <Text style={styles.sizeBadgeText}>{size}</Text>
+                </View>
+                <Text style={styles.summaryQty}>
+                  {p.quantityBySize[size]} kit
+                </Text>
+              </View>
+            ) : null
+          )
+        )}
 
         <View style={styles.summaryDivider} />
 
@@ -162,7 +160,6 @@ export default function ReportScreen() {
       <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
         <Text style={styles.saveText}>Save</Text>
       </TouchableOpacity>
-
     </ScrollView>
   );
 }
@@ -182,28 +179,14 @@ const styles = StyleSheet.create({
   productImage: { width: 60, height: 60, marginRight: 15, resizeMode: "contain" },
   productTitle: { fontSize: 18, fontWeight: "700" },
 
-  sizesRow: { flexDirection: "row", marginTop: 10 },
-  sizeTag: {
-    backgroundColor: "#d5f5e3",
-    color: "#2e8b57",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginRight: 8,
-    borderRadius: 10,
-    fontSize: 12,
-  },
-  activeSizeTag: {
-    backgroundColor: "#1abc9c",
-    color: "#fff",
-    fontWeight: "700",
-  },
-
-  qtyText: { marginTop: 10, fontWeight: "600" },
-  input: {
-    backgroundColor: "#eee",
-    padding: 10,
-    borderRadius: 10,
-    marginTop: 5,
+  sizeInputBox: { width: 70, alignItems: "center", marginRight: 10 },
+  sizeLabel: { fontSize: 12, fontWeight: "600", marginBottom: 4, textAlign: "center" },
+  sizeInput: {
+    width: 60,
+    height: 35,
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+    textAlign: "center",
   },
 
   /* SUMMARY */
@@ -214,53 +197,22 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     elevation: 3,
   },
-  summaryHeading: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 15,
-    color: "#333",
-  },
+  summaryHeading: { fontSize: 20, fontWeight: "700", marginBottom: 15, color: "#333" },
   summaryRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 10,
   },
-  summaryName: {
-    fontSize: 16,
-    fontWeight: "600",
-    width: "45%",
-    color: "#444",
-  },
-  sizeBadge: {
-    backgroundColor: "#1abc9c",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
+  summaryName: { fontSize: 16, fontWeight: "600", width: "45%", color: "#444" },
+  sizeBadge: { backgroundColor: "#1abc9c", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   sizeBadgeText: { color: "#fff", fontWeight: "700", fontSize: 12 },
   summaryQty: { fontSize: 16, fontWeight: "700", color: "#000" },
-
   summaryDivider: { height: 1, backgroundColor: "#bbb", marginVertical: 15 },
-
-  totalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
+  totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   totalLabel: { fontSize: 18, fontWeight: "700", color: "#333" },
   totalValue: { fontSize: 20, fontWeight: "900", color: "#1abc9c" },
 
-  saveBtn: {
-    backgroundColor: "#1abc9c",
-    paddingVertical: 14,
-    borderRadius: 30,
-    marginTop: 25,
-    alignItems: "center",
-  },
-  saveText: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "700",
-  },
+  saveBtn: { backgroundColor: "#1abc9c", paddingVertical: 14, borderRadius: 30, marginTop: 25, alignItems: "center" },
+  saveText: { color: "#fff", fontSize: 20, fontWeight: "700" },
 });
