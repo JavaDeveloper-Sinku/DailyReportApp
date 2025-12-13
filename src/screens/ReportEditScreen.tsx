@@ -41,7 +41,6 @@ type Report = {
 const ReportEditScreen: React.FC = () => {
   const route = useRoute<RouteProp<RouteParams, "ReportEdit">>();
   const navigation = useNavigation<any>();
-
   const { fileName } = route.params;
 
   const [report, setReport] = useState<Report | null>(null);
@@ -79,71 +78,46 @@ const ReportEditScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         <Text style={styles.title}>Edit Report</Text>
 
-        {/* REPORT ID */}
-        <Text style={styles.label}>Report ID</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Report ID"
-          value={report.reportId || ""}
-          onChangeText={(text) => setReport({ ...report, reportId: text })}
-        />
+        {/* HEADER ROW */}
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.headerLabel}>Report ID</Text>
+            <Text style={styles.headerValue}>
+              {report.reportId || "N/A"}
+            </Text>
+          </View>
 
-        {/* DATE */}
-        <Text style={styles.label}>Date</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="YYYY-MM-DD"
-          value={report.date}
-          onChangeText={(text) => setReport({ ...report, date: text })}
-        />
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={styles.headerLabel}>Date</Text>
+            <Text style={styles.headerValue}>{report.date}</Text>
+          </View>
+        </View>
 
-        {/* TOTAL QUANTITY */}
+        {/* TOTAL */}
         <Text style={styles.label}>Total Quantity</Text>
         <TextInput
           style={styles.input}
-          value={report.total?.toString() || ""}
           keyboardType="numeric"
+          value={report.total?.toString() || ""}
           onChangeText={(text) =>
             setReport({ ...report, total: parseInt(text) || 0 })
           }
         />
 
-        {/* PRODUCTS LIST */}
+        {/* PRODUCTS */}
         <Text style={styles.label}>Products</Text>
 
-        {report.products?.map((p: Product, i: number) => (
+        {report.products.map((p, i) => (
           <View key={i} style={styles.productBox}>
-            <Text style={styles.productLabel}>Product {i + 1}</Text>
+            <Text style={styles.productLabel}>{p.name}</Text>
 
             <TextInput
               style={styles.productInput}
-              placeholder="Name"
-              value={p.name}
-              onChangeText={(text) => {
-                const prod = [...report.products];
-                prod[i].name = text;
-                setReport({ ...report, products: prod });
-              }}
-            />
-
-            <TextInput
-              style={styles.productInput}
-              placeholder="Selected Size"
-              value={p.selectedSize}
-              onChangeText={(text) => {
-                const prod = [...report.products];
-                prod[i].selectedSize = text;
-                setReport({ ...report, products: prod });
-              }}
-            />
-
-            <TextInput
-              style={styles.productInput}
-              placeholder="Quantity"
               keyboardType="numeric"
+              placeholder="Quantity"
               value={p.quantity.toString()}
               onChangeText={(text) => {
                 const prod = [...report.products];
@@ -152,25 +126,29 @@ const ReportEditScreen: React.FC = () => {
               }}
             />
 
-            <TextInput
-              style={styles.productInput}
-              placeholder="Capacity"
-              keyboardType="numeric"
-              value={p.capacity?.toString() || ""}
-              onChangeText={(text) => {
-                const prod = [...report.products];
-                prod[i].capacity = parseInt(text) || 0;
-                setReport({ ...report, products: prod });
-              }}
-            />
+            {p.capacity !== undefined && (
+              <TextInput
+                style={styles.productInput}
+                keyboardType="numeric"
+                placeholder="Capacity"
+                value={p.capacity.toString()}
+                onChangeText={(text) => {
+                  const prod = [...report.products];
+                  prod[i].capacity = parseInt(text) || 0;
+                  setReport({ ...report, products: prod });
+                }}
+              />
+            )}
           </View>
         ))}
+      </ScrollView>
 
-        {/* SAVE BUTTON */}
+      {/* FIXED SAVE */}
+      <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
           <Text style={styles.saveText}>SAVE REPORT</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -178,16 +156,52 @@ const ReportEditScreen: React.FC = () => {
 export default ReportEditScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f9fafb", padding: 20 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  title: { fontSize: 24, fontWeight: "700", marginBottom: 20, color: "#111" },
-  label: { fontWeight: "600", marginTop: 15, color: "#333" },
+  container: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
+    margin: 20,
+    textAlign: "center",
+  },
+
+  /* HEADER */
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginHorizontal: 20,
+    marginBottom: 10,
+  },
+  headerLabel: {
+    fontSize: 23,
+    color: "#6b7280",
+    marginBottom: 4,
+  },
+  headerValue: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#111827",
+  },
+
+  label: {
+    fontWeight: "600",
+    marginTop: 15,
+    marginHorizontal: 20,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
     padding: Platform.OS === "android" ? 10 : 12,
     borderRadius: 8,
     marginTop: 5,
+    marginHorizontal: 20,
     backgroundColor: "#fff",
   },
   productBox: {
@@ -196,9 +210,13 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginTop: 10,
+    marginHorizontal: 20,
     backgroundColor: "#fff",
   },
-  productLabel: { fontWeight: "600", marginBottom: 6 },
+  productLabel: {
+    fontWeight: "600",
+    marginBottom: 6,
+  },
   productInput: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -207,16 +225,21 @@ const styles = StyleSheet.create({
     marginTop: 6,
     backgroundColor: "#f3f4f6",
   },
+
+  bottomBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderColor: "#e5e7eb",
+  },
   saveBtn: {
     backgroundColor: "#2BAE8A",
     padding: 16,
     borderRadius: 10,
-    marginTop: 25,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
   },
   saveText: {
     color: "#fff",
