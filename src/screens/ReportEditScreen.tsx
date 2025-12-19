@@ -1,21 +1,25 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   SafeAreaView,
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  ScrollView,
   StyleSheet,
   Alert,
-  ScrollView,
+  TouchableOpacity,
   Platform,
 } from "react-native";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
 import {
   readReportByFileName,
   saveReportByFileName,
 } from "../utils/fileHelper";
+
+/* ================= TYPES ================= */
 
 type RouteParams = {
   ReportEdit: {
@@ -25,18 +29,21 @@ type RouteParams = {
 
 type Product = {
   name: string;
-  selectedSize: string;
+  capacity: number;   // 👈 REQUIRED
   quantity: number;
-  capacity?: number;
 };
 
 type Report = {
-  reportId?: string;
   date: string;
-  total?: number;
   products: Product[];
   fileName: string;
 };
+
+/* ================= HELPERS ================= */
+
+const formatDateOnly = (date: string) => date?.split("T")[0] || "";
+
+/* ================= SCREEN ================= */
 
 const ReportEditScreen: React.FC = () => {
   const route = useRoute<RouteProp<RouteParams, "ReportEdit">>();
@@ -46,27 +53,104 @@ const ReportEditScreen: React.FC = () => {
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
 
+  /* ================= LOAD REPORT ================= */
+
   useEffect(() => {
-    const fetchReport = async () => {
+    const load = async () => {
       const data = await readReportByFileName(fileName);
-      setReport(data);
+
+      if (!data || !data.products) {
+        Alert.alert("Error", "Report not found");
+        navigation.goBack();
+        return;
+      }
+
+      setReport({ ...data, fileName });
       setLoading(false);
     };
-    fetchReport();
+
+    load();
   }, []);
+
+  /* ================= GROUP PRODUCTS ================= */
+
+  const groupedProducts = useMemo(() => {
+    if (!report) return [];
+
+    const map: Record<string, Product[]> = {};
+
+    report.products.forEach((p) => {
+      if (!map[p.name]) map[p.name] = [];
+      map[p.name].push(p);
+    });
+
+    return Object.entries(map).map(([name, rows]) => ({
+      name,
+      rows,
+    }));
+  }, [report]);
+
+  /* ================= TOTAL ================= */
+
+  const totalQuantity = useMemo(() => {
+    if (!report) return 0;
+    return report.products.reduce((sum, p) => sum + (p.quantity || 0), 0);
+  }, [report]);
+
+  /* ================= SAVE ================= */
 
   const handleSave = async () => {
     if (!report) return;
 
     const success = await saveReportByFileName(fileName, report);
 
-    if (success) {
-      Alert.alert("Saved", "Report updated successfully!");
-      navigation.goBack();
-    } else {
-      Alert.alert("Error", "Failed to save report.");
-    }
+    success
+      ? Alert.alert("Saved", "Report updated successfully")
+      : Alert.alert("Error", "Save failed");
   };
+
+  /* ================= PDF ================= */
+
+  const handleGeneratePDF = async () => {
+    if (!report) return;
+
+    const rows = report.products
+      .map(
+        (p) => `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.capacity}</td>
+          <td>${p.quantity}</td>
+        </tr>
+      `
+      )
+      .join("");
+
+    const html = `
+      <html>
+        <body style="font-family:Arial;padding:20px">
+          <h2>Report</h2>
+          <p><b>File:</b> ${fileName}</p>
+          <p><b>Date:</b> ${formatDateOnly(report.date)}</p>
+          <p><b>Total Quantity:</b> ${totalQuantity}</p>
+
+          <table border="1" width="100%" cellspacing="0" cellpadding="6">
+            <tr>
+              <th>Product</th>
+              <th>Capacity</th>
+              <th>Quantity</th>
+            </tr>
+            ${rows}
+          </table>
+        </body>
+      </html>
+    `;
+
+    const { uri } = await Print.printToFileAsync({ html });
+    await Sharing.shareAsync(uri);
+  };
+
+  /* ================= UI ================= */
 
   if (loading || !report) {
     return (
@@ -78,75 +162,63 @@ const ReportEditScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-        <Text style={styles.title}>Edit Report</Text>
-
-        {/* HEADER ROW */}
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.headerLabel}>Report ID</Text>
-            <Text style={styles.headerValue}>
-              {report.reportId || "N/A"}
-            </Text>
-          </View>
-
-          <View style={{ alignItems: "flex-end" }}>
-            <Text style={styles.headerLabel}>Date</Text>
-            <Text style={styles.headerValue}>{report.date}</Text>
-          </View>
+      <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
+        
+        {/* HEADER */}
+        <View style={styles.header}>
+          <Text style={styles.file}>{fileName}</Text>
+          <Text style={styles.date}>{formatDateOnly(report.date)}</Text>
         </View>
 
         {/* TOTAL */}
-        <Text style={styles.label}>Total Quantity</Text>
-        <TextInput
-          style={styles.input}
-          keyboardType="numeric"
-          value={report.total?.toString() || ""}
-          onChangeText={(text) =>
-            setReport({ ...report, total: parseInt(text) || 0 })
-          }
-        />
+        <Text style={styles.total}>Total Quantity: {totalQuantity}</Text>
 
-        {/* PRODUCTS */}
-        <Text style={styles.label}>Products</Text>
+        {/* PRODUCT CARDS */}
+        {groupedProducts.map((product) => (
+          <View key={product.name} style={styles.card}>
+            <Text style={styles.cardTitle}>{product.name}</Text>
 
-        {report.products.map((p, i) => (
-          <View key={i} style={styles.productBox}>
-            <Text style={styles.productLabel}>{p.name}</Text>
+            {product.rows.map((row, idx) => (
+              <View key={idx} style={styles.row}>
+                
+                {/* CAPACITY */}
+                <View style={styles.col}>
+                  <Text style={styles.labelSmall}>Capacity</Text>
+                  <Text style={styles.capacityValue}>{row.capacity}</Text>
+                </View>
 
-            <TextInput
-              style={styles.productInput}
-              keyboardType="numeric"
-              placeholder="Quantity"
-              value={p.quantity.toString()}
-              onChangeText={(text) => {
-                const prod = [...report.products];
-                prod[i].quantity = parseInt(text) || 0;
-                setReport({ ...report, products: prod });
-              }}
-            />
+                {/* QUANTITY */}
+                <View style={styles.col}>
+                  <Text style={styles.labelSmall}>Quantity</Text>
+                  <TextInput
+                    style={styles.input}
+                    keyboardType="numeric"
+                    value={String(row.quantity)}
+                    onChangeText={(t) => {
+                      const updated = report.products.map((p) =>
+                        p === row
+                          ? { ...p, quantity: parseInt(t) || 0 }
+                          : p
+                      );
+                      setReport({ ...report, products: updated });
+                    }}
+                  />
+                </View>
 
-            {p.capacity !== undefined && (
-              <TextInput
-                style={styles.productInput}
-                keyboardType="numeric"
-                placeholder="Capacity"
-                value={p.capacity.toString()}
-                onChangeText={(text) => {
-                  const prod = [...report.products];
-                  prod[i].capacity = parseInt(text) || 0;
-                  setReport({ ...report, products: prod });
-                }}
-              />
-            )}
+              </View>
+            ))}
           </View>
         ))}
       </ScrollView>
 
-      {/* FIXED SAVE */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveText}>SAVE REPORT</Text>
+      {/* BOTTOM BUTTONS */}
+      <View style={styles.bottom}>
+        <TouchableOpacity style={styles.btn} onPress={handleGeneratePDF}>
+          <Text style={styles.btnText}>PDF</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.btn, styles.save]} onPress={handleSave}>
+          <Text style={styles.btnText}>SAVE</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -155,96 +227,83 @@ const ReportEditScreen: React.FC = () => {
 
 export default ReportEditScreen;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f9fafb",
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    margin: 20,
-    textAlign: "center",
-  },
+/* ================= STYLES ================= */
 
-  /* HEADER */
-  headerRow: {
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#f9fafb" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  header: {
+    marginTop: 50,
+    paddingHorizontal: 20,
     flexDirection: "row",
     justifyContent: "space-between",
-    marginHorizontal: 20,
-    marginBottom: 10,
   },
-  headerLabel: {
-    fontSize: 23,
-    color: "#6b7280",
-    marginBottom: 4,
-  },
-  headerValue: {
-    fontSize: 10,
+  file: { fontWeight: "700" },
+  date: { color: "#6b7280" },
+
+  total: {
+    margin: 20,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#111827",
   },
 
-  label: {
-    fontWeight: "600",
-    marginTop: 15,
-    marginHorizontal: 20,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: Platform.OS === "android" ? 10 : 12,
-    borderRadius: 8,
-    marginTop: 5,
-    marginHorizontal: 20,
+  card: {
     backgroundColor: "#fff",
-  },
-  productBox: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#ddd",
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
-    marginHorizontal: 20,
-    backgroundColor: "#fff",
   },
-  productLabel: {
-    fontWeight: "600",
-    marginBottom: 6,
+  cardTitle: { fontWeight: "700", marginBottom: 10 },
+
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
   },
-  productInput: {
+
+  col: { alignItems: "center" },
+
+  labelSmall: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 2,
+  },
+
+  capacityValue: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  input: {
+    width: 70,
+    textAlign: "center",
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 6,
-    padding: Platform.OS === "android" ? 8 : 10,
-    marginTop: 6,
-    backgroundColor: "#f3f4f6",
+    padding: Platform.OS === "android" ? 6 : 8,
   },
 
-  bottomBar: {
+  bottom: {
     position: "absolute",
     bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
+    flexDirection: "row",
+    padding: 12,
     backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderColor: "#e5e7eb",
+    width: "100%",
   },
-  saveBtn: {
-    backgroundColor: "#2BAE8A",
-    padding: 16,
-    borderRadius: 10,
+  btn: {
+    flex: 1,
+    backgroundColor: "#2563EB",
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    marginRight: 6,
   },
-  saveText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
-    textAlign: "center",
-  },
+  save: { backgroundColor: "#16a34a", marginRight: 0 },
+  btnText: { color: "#fff", fontWeight: "700" },
 });

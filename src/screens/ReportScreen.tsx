@@ -9,6 +9,7 @@ import {
   Image,
   ScrollView,
   Alert,
+  Dimensions,
 } from "react-native";
 import { saveReport } from "../utils/fileHelper";
 
@@ -71,7 +72,10 @@ export default function ReportScreen() {
       .flat();
 
     if (selectedProducts.length === 0) {
-      Alert.alert("No Selection", "Please enter quantity for at least one item.");
+      Alert.alert(
+        "No Selection",
+        "Please enter quantity for at least one item."
+      );
       return;
     }
 
@@ -93,74 +97,78 @@ export default function ReportScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 40 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {products.map((product) => (
-        <View key={product.id} style={styles.card}>
-          <Image source={product.image} style={styles.productImage} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.productTitle}>{product.name}</Text>
+    <View style={styles.container}>
+    
+        {products.map((product) => (
+          <View key={product.id} style={styles.card}>
+            <Image source={product.image} style={styles.productImage} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.productTitle}>{product.name}</Text>
 
-            {/* Horizontal Sizes + Quantity */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ marginTop: 10 }}
-            >
-              {product.sizes.map((size) => (
-                <View key={size} style={styles.sizeInputBox}>
-                  <Text style={styles.sizeLabel}>{size}</Text>
-                  <TextInput
-                    placeholder="Qty"
-                    style={styles.sizeInput}
-                    keyboardType="numeric"
-                    value={product.quantityBySize[size] || ""}
-                    onChangeText={(text) =>
-                      handleQuantityChange(product.id, size, text)
-                    }
-                  />
-                </View>
-              ))}
-            </ScrollView>
+              {/* Horizontal Sizes + Quantity */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginTop: 10 }}
+              >
+                {product.sizes.map((size) => (
+                  <View key={size} style={styles.sizeInputBox}>
+                    <Text style={styles.sizeLabel}>{size}</Text>
+                    <TextInput
+                      placeholder="Qty"
+                      style={styles.sizeInput}
+                      keyboardType="numeric"
+                      value={product.quantityBySize[size] || ""}
+                      onChangeText={(text) =>
+                        handleQuantityChange(product.id, size, text)
+                      }
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        ))}
+
+        {/* SUMMARY */}
+        <View style={styles.summaryContainer}>
+          <Text style={styles.summaryHeading}>Summary</Text>
+
+          <ScrollView
+            style={styles.summaryScroll}
+            showsVerticalScrollIndicator={false}
+          >
+            {products.map((p) =>
+              p.sizes.map((size) =>
+                (parseInt(p.quantityBySize[size] || "0") || 0) > 0 ? (
+                  <View key={p.id + size} style={styles.summaryRow}>
+                    <Text style={styles.summaryName}>{p.name}</Text>
+                    <View style={styles.sizeBadge}>
+                      <Text style={styles.sizeBadgeText}>{size}</Text>
+                    </View>
+                    <Text style={styles.summaryQty}>
+                      {p.quantityBySize[size]} kit
+                    </Text>
+                  </View>
+                ) : null
+              )
+            )}
+          </ScrollView>
+
+          <View style={styles.summaryDivider} />
+
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total Quantity</Text>
+            <Text style={styles.totalValue}>{calculateTotal()} kit</Text>
           </View>
         </View>
-      ))}
+      
 
-      {/* SUMMARY */}
-      <View style={styles.summaryContainer}>
-        <Text style={styles.summaryHeading}>Summary</Text>
-        {products.map((p) =>
-          p.sizes.map((size) =>
-            (parseInt(p.quantityBySize[size] || "0") || 0) > 0 ? (
-              <View key={p.id + size} style={styles.summaryRow}>
-                <Text style={styles.summaryName}>{p.name}</Text>
-                <View style={styles.sizeBadge}>
-                  <Text style={styles.sizeBadgeText}>{size}</Text>
-                </View>
-                <Text style={styles.summaryQty}>
-                  {p.quantityBySize[size]} kit
-                </Text>
-              </View>
-            ) : null
-          )
-        )}
-
-        <View style={styles.summaryDivider} />
-
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total Quantity</Text>
-          <Text style={styles.totalValue}>{calculateTotal()} kit</Text>
-        </View>
-      </View>
-
-      {/* SAVE BUTTON */}
+      {/* SAVE BUTTON FIXED */}
       <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
         <Text style={styles.saveText}>Save</Text>
       </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -198,6 +206,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   summaryHeading: { fontSize: 20, fontWeight: "700", marginBottom: 15, color: "#333" },
+  summaryScroll: { maxHeight: 220 }, // scrollable inside summary
   summaryRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -213,6 +222,15 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 18, fontWeight: "700", color: "#333" },
   totalValue: { fontSize: 20, fontWeight: "900", color: "#1abc9c" },
 
-  saveBtn: { backgroundColor: "#1abc9c", paddingVertical: 14, borderRadius: 30, marginTop: 25, alignItems: "center" },
+  saveBtn: {
+    backgroundColor: "#1abc9c",
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: "center",
+    position: "absolute",
+    bottom: 15,
+    left: 15,
+    right: 15,
+  },
   saveText: { color: "#fff", fontSize: 20, fontWeight: "700" },
 });
