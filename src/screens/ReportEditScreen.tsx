@@ -29,7 +29,7 @@ type RouteParams = {
 
 type Product = {
   name: string;
-  capacity: number;   // 👈 REQUIRED
+  capacity: number;
   quantity: number;
 };
 
@@ -129,8 +129,9 @@ const ReportEditScreen: React.FC = () => {
     const html = `
       <html>
         <body style="font-family:Arial;padding:20px">
-          <h2>Report</h2>
-          <p><b>File:</b> ${fileName}</p>
+          <h2 style="text-align:center">Product Report</h2>
+
+          <p><b>Report ID:</b> ${fileName}</p>
           <p><b>Date:</b> ${formatDateOnly(report.date)}</p>
           <p><b>Total Quantity:</b> ${totalQuantity}</p>
 
@@ -163,11 +164,20 @@ const ReportEditScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
-        
-        {/* HEADER */}
-        <View style={styles.header}>
-          <Text style={styles.file}>{fileName}</Text>
-          <Text style={styles.date}>{formatDateOnly(report.date)}</Text>
+
+        {/* ===== HEADER WITH REPORT ID + DATE ===== */}
+        <View style={styles.headerBox}>
+          <View>
+            <Text style={styles.label}>Report ID</Text>
+            <Text style={styles.value}>{fileName}</Text>
+          </View>
+
+          <View style={{ alignItems: "flex-end" }}>
+            <Text style={styles.label}>Date</Text>
+            <Text style={styles.value}>
+              {formatDateOnly(report.date)}
+            </Text>
+          </View>
         </View>
 
         {/* TOTAL */}
@@ -180,16 +190,16 @@ const ReportEditScreen: React.FC = () => {
 
             {product.rows.map((row, idx) => (
               <View key={idx} style={styles.row}>
-                
+
                 {/* CAPACITY */}
                 <View style={styles.col}>
-                  <Text style={styles.labelSmall}>Capacity</Text>
-                  <Text style={styles.capacityValue}>{row.capacity}</Text>
+                  <Text style={styles.small}>Capacity</Text>
+                  <Text style={styles.capacity}>{row.capacity}</Text>
                 </View>
 
                 {/* QUANTITY */}
                 <View style={styles.col}>
-                  <Text style={styles.labelSmall}>Quantity</Text>
+                  <Text style={styles.small}>Quantity</Text>
                   <TextInput
                     style={styles.input}
                     keyboardType="numeric"
@@ -233,17 +243,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f9fafb" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 
-  header: {
+  headerBox: {
     marginTop: 50,
-    paddingHorizontal: 20,
+    marginHorizontal: 20,
     flexDirection: "row",
     justifyContent: "space-between",
+    marginBottom: 10,
+    
   },
-  file: { fontWeight: "700" },
-  date: { color: "#6b7280" },
+
+  label: { fontSize: 12, color: "#6b7280" },
+  value: { fontSize: 14, fontWeight: "700" },
 
   total: {
-    margin: 20,
+    marginHorizontal: 20,
+    marginBottom: 10,
     fontSize: 16,
     fontWeight: "700",
   },
@@ -257,27 +271,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd",
   },
+
   cardTitle: { fontWeight: "700", marginBottom: 10 },
 
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: 8,
   },
 
   col: { alignItems: "center" },
 
-  labelSmall: {
-    fontSize: 12,
-    color: "#6b7280",
-    marginBottom: 2,
-  },
+  small: { fontSize: 12, color: "#6b7280" },
 
-  capacityValue: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
+  capacity: { fontSize: 16, fontWeight: "700" },
 
   input: {
     width: 70,
@@ -296,6 +303,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     width: "100%",
   },
+
   btn: {
     flex: 1,
     backgroundColor: "#2563EB",
@@ -304,6 +312,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 6,
   },
+
   save: { backgroundColor: "#16a34a", marginRight: 0 },
+
   btnText: { color: "#fff", fontWeight: "700" },
 });
