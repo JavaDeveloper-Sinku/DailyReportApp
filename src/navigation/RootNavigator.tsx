@@ -16,12 +16,14 @@ import ReportScreen from "../screens/ReportScreen";
 import ReportListScreen from "../screens/ReportListScreen";
 import ReportEditScreen from "../screens/ReportEditScreen";
 import AnalysisScreen  from "../screens/AnalysisScreen";
+import TestScreen from "../screens/TestScreen";
 
 export type RootStackParamList = {
   Home: undefined;
   Report: undefined;
   ReportList: undefined;
   Analysis: undefined;
+  Test: undefined;
 
   ReportEdit: { reportId: string } | undefined;
 };
@@ -83,6 +85,10 @@ const CustomHeader = () => {
               <Text style={styles.menuItem}>Analysis</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity onPress={() => navigateTo("Test")}>
+              <Text style={styles.menuItem}>Test Screen</Text>
+            </TouchableOpacity>
+
             
 
           </View>
@@ -107,6 +113,7 @@ export default function RootNavigator() {
         <Stack.Screen name="ReportList" component={ReportListScreen} />
         <Stack.Screen name="ReportEdit" component={ReportEditScreen} />
         <Stack.Screen name="Analysis" component={AnalysisScreen} />
+        <Stack.Screen name="Test" component={TestScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
