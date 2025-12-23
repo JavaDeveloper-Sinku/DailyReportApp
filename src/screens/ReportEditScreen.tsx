@@ -19,22 +19,11 @@ import * as Sharing from "expo-sharing";
 import { readReportByFileName, saveReportByFileName } from "../utils/fileHelper";
 
 type RouteParams = {
-  ReportEdit: {
-    fileName: string;
-  };
+  ReportEdit: { fileName: string };
 };
 
-type Product = {
-  name: string;
-  capacity: number;
-  quantity: number;
-};
-
-type Report = {
-  date: string;
-  products: Product[];
-  fileName: string;
-};
+type Product = { name: string; capacity: number; quantity: number };
+type Report = { date: string; products: Product[]; fileName: string };
 
 const formatDateOnly = (date: string) => date?.split("T")[0] || "";
 
@@ -49,29 +38,32 @@ const ReportEditScreen: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       const data = await readReportByFileName(fileName);
-
-      if (!data || !data.products) {
+      if (!data || !data.products?.length) {
         Alert.alert("Error", "Report not found");
         navigation.goBack();
         return;
       }
 
-      setReport({ ...data, fileName });
+      // Ensure all products have default values
+      const cleanProducts = data.products.map((p: Product) => ({
+        name: p.name ?? "Unknown",
+        capacity: Number(p.capacity ?? 0),
+        quantity: Number(p.quantity ?? 0),
+      }));
+
+      setReport({ ...data, fileName, products: cleanProducts });
       setLoading(false);
     };
-
     load();
   }, []);
 
   const groupedProducts = useMemo(() => {
     if (!report?.products?.length) return [];
-
     const map: Record<string, Product[]> = {};
     report.products.forEach((p) => {
       if (!map[p.name]) map[p.name] = [];
       map[p.name].push(p);
     });
-
     return Object.entries(map).map(([name, rows]) => ({ name, rows }));
   }, [report]);
 
@@ -83,7 +75,6 @@ const ReportEditScreen: React.FC = () => {
   const handleSave = async () => {
     if (!report) return;
     const success = await saveReportByFileName(fileName, report);
-
     success
       ? Alert.alert("Saved", "Report updated successfully")
       : Alert.alert("Error", "Save failed");
@@ -95,33 +86,32 @@ const ReportEditScreen: React.FC = () => {
     const rows = report.products
       .map(
         (p) => `
-       <tr>
-         <td>${p.name}</td>
-         <td>${p.capacity}</td>
-         <td>${p.quantity}</td>
-       </tr>
-     `
+      <tr>
+        <td>${p.name}</td>
+        <td>${p.capacity}</td>
+        <td>${p.quantity}</td>
+      </tr>`
       )
       .join("");
 
     const html = `
-     <html>
-       <body style="font-family:Arial;padding:20px">
-         <h2 style="text-align:center">Product Report</h2>
-         <p><b>Report ID:</b> ${fileName}</p>
-         <p><b>Date:</b> ${formatDateOnly(report.date)}</p>
-         <p><b>Total Quantity:</b> ${totalQuantity}</p>
-         <table border="1" width="100%" cellspacing="0" cellpadding="6">
-           <tr>
-             <th>Product</th>
-             <th>Capacity</th>
-             <th>Quantity</th>
-           </tr>
-           ${rows}
-         </table>
-       </body>
-     </html>
-   `;
+      <html>
+        <body style="font-family:Arial;padding:20px">
+          <h2 style="text-align:center">Product Report</h2>
+          <p><b>Report ID:</b> ${fileName}</p>
+          <p><b>Date:</b> ${formatDateOnly(report.date)}</p>
+          <p><b>Total Quantity:</b> ${totalQuantity}</p>
+          <table border="1" width="100%" cellspacing="0" cellpadding="6">
+            <tr>
+              <th>Product</th>
+              <th>Capacity</th>
+              <th>Quantity</th>
+            </tr>
+            ${rows}
+          </table>
+        </body>
+      </html>
+    `;
 
     const { uri } = await Print.printToFileAsync({ html });
     await Sharing.shareAsync(uri);
@@ -138,12 +128,12 @@ const ReportEditScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* INFO BOX */}
         <View style={styles.infoBox}>
           <View>
             <Text style={styles.infoLabel}>Report ID</Text>
             <Text style={styles.infoValue}>{fileName}</Text>
           </View>
-
           <View style={{ alignItems: "flex-end" }}>
             <Text style={styles.infoLabel}>Date</Text>
             <Text style={styles.infoValue}>{formatDateOnly(report.date)}</Text>
@@ -152,40 +142,40 @@ const ReportEditScreen: React.FC = () => {
 
         <Text style={styles.total}>Total Quantity: {totalQuantity}</Text>
 
-       {groupedProducts.map((product) => (
-      <ProductCard
-    key={product.name}
-    productName={product.name}
-    capacities={product.rows.map((r) => ({
-      value: r.capacity,       // yaha actual capacity
-      unit: "PCS",
-      kits: r.quantity,        // yaha actual quantity
-    }))}
-    onChange={(updatedCapacities) => {
-      if (!report?.products?.length) return;
+        {/* PRODUCT CARDS */}
+        {groupedProducts.map((product) => (
+          <ProductCard
+            key={product.name}
+            productName={product.name}
+            capacities={product.rows.map((r) => ({
+              value: Number(r.capacity ?? 0),
+              unit: "PCS",
+              kits: r.quantity ?? 0,
+            }))}
+            onChange={(updatedCapacities) => {
+              if (!report?.products?.length) return;
 
-      const updatedProducts = report.products.map((p) => {
-        if (p.name === product.name) {
-          const matchedCap = updatedCapacities.find(
-            (u) => u.value === p.capacity
-          );
-          return matchedCap ? { ...p, quantity: matchedCap.kits } : p;
-        }
-        return p;
-      });
+              const updatedProducts = report.products.map((p) => {
+                if (p.name === product.name) {
+                  const matchedCap = updatedCapacities.find(
+                    (u) => Number(u.value) === Number(p.capacity)
+                  );
+                  return matchedCap ? { ...p, quantity: matchedCap.kits } : p;
+                }
+                return p;
+              });
 
-      setReport({ ...report, products: updatedProducts });
-    }}
-      />
-    ))}
-
+              setReport({ ...report, products: updatedProducts });
+            }}
+          />
+        ))}
       </ScrollView>
 
+      {/* BOTTOM BUTTONS */}
       <View style={styles.bottom}>
         <TouchableOpacity style={styles.btn} onPress={handleGeneratePDF}>
           <Text style={styles.btnText}>PDF</Text>
         </TouchableOpacity>
-
         <TouchableOpacity style={[styles.btn, styles.save]} onPress={handleSave}>
           <Text style={styles.btnText}>SAVE</Text>
         </TouchableOpacity>
@@ -199,9 +189,7 @@ export default ReportEditScreen;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f9fafb" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-
   scrollContent: { padding: 16, paddingBottom: 120 },
-
   infoBox: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -212,12 +200,9 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     marginBottom: 12,
   },
-
   infoLabel: { fontSize: 12, color: "#6b7280" },
   infoValue: { fontSize: 14, fontWeight: "700", color: "#111827" },
-
   total: { fontSize: 16, fontWeight: "700", marginBottom: 16, color: "#111827", marginHorizontal: 2 },
-
   bottom: {
     position: "absolute",
     bottom: 0,
@@ -226,7 +211,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     width: "100%",
   },
-
   btn: { flex: 1, backgroundColor: "#2563EB", padding: 14, borderRadius: 8, alignItems: "center", marginRight: 8 },
   save: { backgroundColor: "#16a34a", marginRight: 0 },
   btnText: { color: "#fff", fontWeight: "700" },

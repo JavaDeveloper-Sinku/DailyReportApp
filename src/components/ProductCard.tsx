@@ -11,7 +11,7 @@ import {
 
 type CapacityItem = {
   value: number;
-  unit: "ML" | "L" | "G" | "KG" | "PCS";
+  unit: "ML" | "L" | "G" | "KG" | "UNIT";
   kits: number;
 };
 
