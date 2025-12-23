@@ -14,7 +14,7 @@ import {
   Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { listAllReports, deleteReportFile } from "../utils/fileHelper";
+import { listAllReports, deleteReport } from "../utils/fileHelper";
 import { Edit2, Trash2 } from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
@@ -70,7 +70,7 @@ const ReportListScreen: React.FC = () => {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            await deleteReportFile(fileName);
+            await deleteReport(fileName);
             loadReports();
           },
         },

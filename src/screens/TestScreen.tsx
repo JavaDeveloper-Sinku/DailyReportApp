@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
 import {
   SafeAreaView,
   View,
@@ -11,11 +13,53 @@ import {
 
 import ProductCard from "../components/ProductCard";
 
+const formatDateOnly = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+};
+
 const TestScreen: React.FC = () => {
-  // Demo data
-  const reportId = "RPT-001";
-  const reportDate = "2025-12-23";
-  const totalQuantity = 41; // Sum of kits in demo data
+  const [report, setReport] = useState<Report | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  type Product = {
+  name: string;
+  capacity: number;
+  kits: number; // quantity ka equivalent
+};
+
+type Report = {
+  id: string;
+  date: string;
+  products: Product[];
+};
+
+useEffect(() => {
+  const loadReport = async () => {
+    // Example: fetch from local JSON / API
+    const data: Report = {
+      id: "RPT-001",
+      date: "2025-12-23T10:30:00Z",
+      products: [
+        { name: "Hand Sanitizer", capacity: 100, kits: 5 },
+        { name: "Rice Bag", capacity: 1, kits: 10 },
+      ],
+    };
+
+    setReport(data);
+    setLoading(false);
+  };
+
+  loadReport();
+}, []);
+
+
+const totalQuantity = useMemo(() => {
+  if (!report) return 0;
+  return report.products.reduce((sum, p) => sum + p.kits, 0);
+}, [report]);
+
+
 
   // Button handlers
   const handleSave = () => {
@@ -26,21 +70,23 @@ const TestScreen: React.FC = () => {
     Alert.alert("PDF", "PDF generated and shared!");
   };
 
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* ===== INFO BOX ===== */}
-        <View style={styles.infoBox}>
-          <View>
-            <Text style={styles.infoLabel}>Report ID</Text>
-            <Text style={styles.infoValue}>{reportId}</Text>
-          </View>
-
-          <View style={{ alignItems: "flex-end" }}>
-            <Text style={styles.infoLabel}>Date</Text>
-            <Text style={styles.infoValue}>{reportDate}</Text>
-          </View>
+       {/* ===== INFO BOX ===== */}
+    {report && (
+     <View style={styles.infoBox}>
+        <View>
+          <Text style={styles.infoLabel}>Report ID</Text>
+          <Text style={styles.infoValue}>{report.id}</Text>
         </View>
+    <View style={{ alignItems: "flex-end" }}>
+      <Text style={styles.infoLabel}>Date</Text>
+      <Text style={styles.infoValue}>{formatDateOnly(report.date)}</Text>
+    </View>
+    </View>
+)}
 
         {/* Total Quantity */}
         <Text style={styles.total}>Total Quantity: {totalQuantity}</Text>

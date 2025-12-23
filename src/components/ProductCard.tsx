@@ -1,7 +1,6 @@
 "use client";
 
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -19,14 +18,21 @@ type CapacityItem = {
 type ProductCardProps = {
   productName: string;
   capacities: CapacityItem[];
+  onChange: (updatedCapacities: CapacityItem[]) => void; // Parent callback
 };
 
 export default function ProductCard({
   productName,
   capacities,
+  onChange,
 }: ProductCardProps) {
   const [data, setData] = useState(capacities);
   const [editing, setEditing] = useState<number | null>(null);
+
+  // Sync with parent if capacities change
+  useEffect(() => {
+    setData(capacities);
+  }, [capacities]);
 
   const handleChange = (index: number, value: number) => {
     if (value < 0) return;
@@ -34,6 +40,7 @@ export default function ProductCard({
     const updated = [...data];
     updated[index].kits = value;
     setData(updated);
+    onChange(updated); // Update parent state
   };
 
   const totalKits = data.reduce((sum, item) => sum + item.kits, 0);
@@ -66,9 +73,7 @@ export default function ProductCard({
               value={String(cap.kits)}
               keyboardType="number-pad"
               autoFocus
-              onChangeText={(v) =>
-                handleChange(index, Number(v))
-              }
+              onChangeText={(v) => handleChange(index, Number(v))}
               onBlur={() => setEditing(null)}
               style={styles.input}
             />
@@ -157,4 +162,3 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
-
