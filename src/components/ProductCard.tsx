@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,15 +10,16 @@ import {
 } from "react-native";
 
 type CapacityItem = {
+  id: string;
   value: number;
-  unit: "ML" | "L" | "G" | "KG" | "UNIT";
+  unit: "ML" | "L" | "G" | "KG" | "UNIT" | "PCS";
   kits: number;
 };
 
 type ProductCardProps = {
   productName: string;
   capacities: CapacityItem[];
-  onChange: (updatedCapacities: CapacityItem[]) => void; // Parent callback
+  onChange: (updatedCapacities: CapacityItem[]) => void;
 };
 
 export default function ProductCard({
@@ -26,34 +27,29 @@ export default function ProductCard({
   capacities,
   onChange,
 }: ProductCardProps) {
-  const [data, setData] = useState(capacities);
-  const [editing, setEditing] = useState<number | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
 
-  // Sync with parent if capacities change
-  useEffect(() => {
-    setData(capacities);
-  }, [capacities]);
+  const handleChange = (id: string, value: number) => {
+    if (isNaN(value) || value < 0) return;
 
-  const handleChange = (index: number, value: number) => {
-    if (value < 0) return;
+    const updated = capacities.map((item) =>
+      item.id === id ? { ...item, kits: value } : item
+    );
 
-    const updated = [...data];
-    updated[index].kits = value;
-    setData(updated);
-    onChange(updated); // Update parent state
+    onChange(updated); // ✅ single source of truth
   };
 
-  const totalKits = data.reduce((sum, item) => sum + item.kits, 0);
+  const totalKits = capacities.reduce((sum, item) => sum + item.kits, 0);
 
   const formatCapacity = (v: number, u: string) =>
     `${v} ${u.toLowerCase()}`;
 
+
+  
   return (
     <View style={styles.card}>
-      {/* Product Name */}
       <Text style={styles.title}>{productName}</Text>
 
-      {/* Header */}
       <View style={styles.headerRow}>
         <Text style={styles.headerText}>Capacity</Text>
         <Text style={styles.headerText}>Kits</Text>
@@ -61,31 +57,29 @@ export default function ProductCard({
 
       <View style={styles.divider} />
 
-      {/* Rows */}
-      {data.map((cap, index) => (
-        <View key={index} style={styles.row}>
+      {capacities.map((cap) => (
+        <View key={cap.id} style={styles.row}>
           <Text style={styles.capacity}>
             {formatCapacity(cap.value, cap.unit)}
           </Text>
 
-          {editing === index ? (
+          {editing === cap.id ? (
             <TextInput
               value={String(cap.kits)}
               keyboardType="number-pad"
               autoFocus
-              onChangeText={(v) => handleChange(index, Number(v))}
+              onChangeText={(v) => handleChange(cap.id, Number(v))}
               onBlur={() => setEditing(null)}
               style={styles.input}
             />
           ) : (
-            <Pressable onPress={() => setEditing(index)}>
+            <Pressable onPress={() => setEditing(cap.id)}>
               <Text style={styles.kits}>{cap.kits}</Text>
             </Pressable>
           )}
         </View>
       ))}
 
-      {/* Total Kits */}
       <View style={styles.totalRow}>
         <Text style={styles.totalText}>Total Kits</Text>
         <Text style={styles.totalValue}>{totalKits}</Text>
@@ -93,72 +87,76 @@ export default function ProductCard({
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
-    borderRadius: 16,
+    borderRadius: 8,
     padding: 16,
-    marginBottom: 16,
+    marginVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 3,
   },
   title: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "bold",
     marginBottom: 12,
-    color: "#111",
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginBottom: 8,
   },
   headerText: {
-    fontSize: 12,
-    color: "#999",
-    textTransform: "uppercase",
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#555",
   },
   divider: {
     height: 1,
     backgroundColor: "#eee",
-    marginVertical: 8,
+    marginBottom: 8,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 6,
+    alignItems: "center",
+    paddingVertical: 8,
   },
   capacity: {
-    fontSize: 14,
-    color: "#555",
+    fontSize: 16,
+    color: "#333",
   },
   kits: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111",
+    fontSize: 16,
+    color: "#007BFF",
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    minWidth: 60,
-    textAlign: "right",
+    borderBottomWidth: 1,
+    borderBottomColor: "#007BFF",
+    fontSize: 16,
+    color: "#333",
+    minWidth: 40,
+    textAlign: "center",
   },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginTop: 12,
     borderTopWidth: 1,
     borderTopColor: "#eee",
-    marginTop: 10,
     paddingTop: 8,
   },
   totalText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
-    color: "#444",
+    color: "#333",
   },
   totalValue: {
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
   },
 });
