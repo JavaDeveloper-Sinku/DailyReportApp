@@ -2,6 +2,10 @@ import * as FileSystem from "expo-file-system/legacy";
 
 const REPORTS_DIR = (FileSystem.documentDirectory || "") + "reports/";
 
+
+
+
+
 /* ================= DIR ================= */
 
 export const ensureReportsDirExists = async () => {
@@ -11,6 +15,8 @@ export const ensureReportsDirExists = async () => {
   }
 };
 
+
+
 /* ================= FILE NAME ================= */
 
 export const generateReportFilePath = () => {
@@ -19,6 +25,9 @@ export const generateReportFilePath = () => {
   const time = now.toTimeString().split(" ")[0].replace(/:/g, "-");
   return REPORTS_DIR + `${date}_${time}.json`;
 };
+
+
+
 
 /* ================= SAVE NEW ================= */
 
@@ -35,6 +44,9 @@ export const saveReport = async (reportData: any) => {
 
   return fileUri;
 };
+
+
+
 
 /* ================= LIST ================= */
 
@@ -61,6 +73,9 @@ export const listAllReports = async () => {
   );
 };
 
+
+
+
 /* ================= READ ================= */
 
 export const readReportByFileName = async (fileName: string) => {
@@ -72,6 +87,10 @@ export const readReportByFileName = async (fileName: string) => {
   return JSON.parse(content);
 };
 
+
+
+
+
 /* ================= DELETE ================= */
 
 export const deleteReport = async (fileName: string) => {
@@ -79,6 +98,10 @@ export const deleteReport = async (fileName: string) => {
   await FileSystem.deleteAsync(uri, { idempotent: true });
   return true;
 };
+
+
+
+
 
 /* ================= UPDATE ================= */
 
