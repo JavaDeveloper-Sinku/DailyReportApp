@@ -1,5 +1,6 @@
 "use client";
 
+import { Video } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   View,
@@ -36,127 +37,133 @@ export default function ProductCard({
       item.id === id ? { ...item, kits: value } : item
     );
 
-    onChange(updated); // ✅ single source of truth
+    onChange(updated);
   };
 
   const totalKits = capacities.reduce((sum, item) => sum + item.kits, 0);
 
   const formatCapacity = (v: number, u: string) =>
-    `${v} ${u.toLowerCase()}`;
+    `${v} ${u}`;
 
-
-  
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{productName}</Text>
 
-      <View style={styles.headerRow}>
-        <Text style={styles.headerText}>Capacity</Text>
-        <Text style={styles.headerText}>Kits</Text>
-      </View>
-
-      <View style={styles.divider} />
-
       {capacities.map((cap) => (
         <View key={cap.id} style={styles.row}>
-          <Text style={styles.capacity}>
-            {formatCapacity(cap.value, cap.unit)}
-          </Text>
+          {/* ===== Capacity Box ===== */}
+          <View style={styles.box}>
+            <Text style={styles.boxLabel}>Capacity</Text>
+            <Text style={styles.boxValue}>
+              {formatCapacity(cap.value, cap.unit)}
+            </Text>
+          </View>
 
-          {editing === cap.id ? (
-            <TextInput
-              value={String(cap.kits)}
-              keyboardType="number-pad"
-              autoFocus
-              onChangeText={(v) => handleChange(cap.id, Number(v))}
-              onBlur={() => setEditing(null)}
-              style={styles.input}
-            />
-          ) : (
-            <Pressable onPress={() => setEditing(cap.id)}>
-              <Text style={styles.kits}>{cap.kits}</Text>
-            </Pressable>
-          )}
+          {/* ===== Kits Box ===== */}
+          <View style={styles.box}>
+            <Text style={styles.boxLabel}>Kits</Text>
+
+            {editing === cap.id ? (
+              <TextInput
+                value={String(cap.kits)}
+                keyboardType="number-pad"
+                autoFocus
+                onChangeText={(v) => handleChange(cap.id, Number(v))}
+                onBlur={() => setEditing(null)}
+                style={styles.input}
+              />
+            ) : (
+              <Pressable onPress={() => setEditing(cap.id)}>
+                <Text style={styles.boxValue}>{cap.kits}</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
       ))}
 
-      <View style={styles.totalRow}>
-        <Text style={styles.totalText}>Total Kits</Text>
+      {/* ===== Total Box ===== */}
+      <View style={styles.totalBox}>
+        <Text style={styles.totalLabel}>Total Kits</Text>
         <Text style={styles.totalValue}>{totalKits}</Text>
       </View>
+
+
+
+
+
+     
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
-    marginVertical: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    marginVertical: 10,
     elevation: 3,
   },
+
   title: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "700",
     marginBottom: 12,
+    color: "#111827",
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  headerText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#555",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#eee",
-    marginBottom: 8,
-  },
+
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginBottom: 12,
+  },
+
+  box: {
+    width: "48%",
+    backgroundColor: "#f9fafb",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    paddingVertical: 10,
     alignItems: "center",
-    paddingVertical: 8,
   },
-  capacity: {
+
+  boxLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 4,
+  },
+
+  boxValue: {
     fontSize: 16,
-    color: "#333",
+    fontWeight: "700",
+    color: "#111827",
   },
-  kits: {
-    fontSize: 16,
-    color: "#007BFF",
-  },
+
   input: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#007BFF",
     fontSize: 16,
-    color: "#333",
-    minWidth: 40,
+    fontWeight: "700",
+    color: "#2563eb",
     textAlign: "center",
+    minWidth: 40,
   },
-  totalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-    paddingTop: 8,
+
+  totalBox: {
+    marginTop: 8,
+    backgroundColor: "#eef2ff",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
   },
-  totalText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+
+  totalLabel: {
+    fontSize: 13,
+    color: "#4f46e5",
   },
+
   totalValue: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#4338ca",
   },
 });
