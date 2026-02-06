@@ -1,103 +1,133 @@
 import React, { useState } from "react";
-import { NavigationContainer, useNavigation } from "@react-navigation/native";
+import { NavigationContainer, useNavigation, NavigationProp } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
+  Platform,
+  TouchableWithoutFeedback,
+  StatusBar,
 } from "react-native";
-
-import { Menu, Notebook } from "lucide-react-native";
+import {
+  Menu,
+  Notebook,
+  Home,
+  Plus,
+  FileText,
+  BarChart3,
+  X
+} from "lucide-react-native";
 
 import HomeScreen from "../screens/HomeScreen";
 import ReportScreen from "../screens/ReportScreen";
 import ReportListScreen from "../screens/ReportListScreen";
 import ReportEditScreen from "../screens/ReportEditScreen";
-import AnalysisScreen  from "../screens/AnalysisScreen";
-import TestScreen from "../screens/TestScreen";
+import AnalysisScreen from "../screens/AnalysisScreen";
 
 export type RootStackParamList = {
   Home: undefined;
   Report: undefined;
   ReportList: undefined;
   Analysis: undefined;
-  Test: undefined;
-
-  ReportEdit: { reportId: string } | undefined;
+  ReportEdit: { fileName: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 // ---------------- CUSTOM HEADER ----------------
 const CustomHeader = () => {
-  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [menuVisible, setMenuVisible] = useState(false);
 
-  const openMenu = () => setMenuVisible(true);
   const closeMenu = () => setMenuVisible(false);
 
-  const navigateTo = (screen: string) => {
+  const navigateTo = (screen: keyof RootStackParamList) => {
     closeMenu();
-    //@ts-ignore
-    navigation.navigate(screen);
+    navigation.navigate(screen as any); // Type assertion for simple navigation
   };
 
   return (
     <>
-      <View style={styles.headerContainer}>
+      <View style={[styles.headerContainer, { paddingTop: insets.top + (Platform.OS === 'android' ? 10 : 0) }]}>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-        {/* -------- LEFT NOTES ICON (Go to Home) ---------- */}
+        {/* -------- LEFT LOGO/ICON ---------- */}
         <TouchableOpacity
-          style={styles.leftIcon}
+          style={styles.iconButton}
           onPress={() => navigateTo("Home")}
+          activeOpacity={0.7}
         >
-          <Notebook size={32} color="black" />
+          <View style={styles.logoContainer}>
+            <Notebook size={22} color="#fff" />
+          </View>
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Daily Report</Text>
 
         {/* -------- RIGHT MENU ICON ---------- */}
-        <TouchableOpacity style={styles.menuIcon} onPress={openMenu}>
-          <Menu size={32} color="black" />
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => setMenuVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Menu size={28} color="#374151" />
         </TouchableOpacity>
       </View>
 
       {/* POPUP MENU */}
-      <Modal transparent visible={menuVisible} animationType="fade">
-        <TouchableOpacity style={styles.menuOverlay} onPress={closeMenu}>
-          <View style={styles.menuBox}>
+      <Modal
+        transparent
+        visible={menuVisible}
+        animationType="fade"
+        onRequestClose={closeMenu}
+      >
+        <TouchableWithoutFeedback onPress={closeMenu}>
+          <View style={styles.menuOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.menuBox, { marginTop: insets.top + 60 }]}>
 
-            <TouchableOpacity onPress={() => navigateTo("Home")}>
-              <Text style={styles.menuItem}>Home</Text>
-            </TouchableOpacity>
+                <View style={styles.menuHeader}>
+                  <Text style={styles.menuTitle}>Navigation</Text>
+                  <TouchableOpacity onPress={closeMenu}>
+                    <X size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+                </View>
 
-            <TouchableOpacity onPress={() => navigateTo("Report")}>
-              <Text style={styles.menuItem}>Add Report</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem} onPress={() => navigateTo("Home")}>
+                  <Home size={20} color="#4B5563" />
+                  <Text style={styles.menuItemText}>Home</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigateTo("ReportList")}>
-              <Text style={styles.menuItem}>View Reports</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem} onPress={() => navigateTo("Report")}>
+                  <Plus size={20} color="#4B5563" />
+                  <Text style={styles.menuItemText}>New Report</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigateTo("Analysis")}>
-              <Text style={styles.menuItem}>Analysis</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem} onPress={() => navigateTo("ReportList")}>
+                  <FileText size={20} color="#4B5563" />
+                  <Text style={styles.menuItemText}>View Reports</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigateTo("Test")}>
-              <Text style={styles.menuItem}>Test Screen</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem} onPress={() => navigateTo("Analysis")}>
+                  <BarChart3 size={20} color="#4B5563" />
+                  <Text style={styles.menuItemText}>Analysis</Text>
+                </TouchableOpacity>
 
-            
 
+
+              </View>
+            </TouchableWithoutFeedback>
           </View>
-        </TouchableOpacity>
+        </TouchableWithoutFeedback>
       </Modal>
     </>
   );
 };
-// ------------------------------------------------
 
 export default function RootNavigator() {
   return (
@@ -106,6 +136,8 @@ export default function RootNavigator() {
         initialRouteName="Home"
         screenOptions={{
           header: () => <CustomHeader />,
+          contentStyle: { backgroundColor: '#F3F4F6' }, // Default bg color
+          animation: 'slide_from_right',
         }}
       >
         <Stack.Screen name="Home" component={HomeScreen} />
@@ -113,61 +145,98 @@ export default function RootNavigator() {
         <Stack.Screen name="ReportList" component={ReportListScreen} />
         <Stack.Screen name="ReportEdit" component={ReportEditScreen} />
         <Stack.Screen name="Analysis" component={AnalysisScreen} />
-        <Stack.Screen name="Test" component={TestScreen} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
 
-// -------- HEADER STYLES ----------
 const styles = StyleSheet.create({
   headerContainer: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 3,
+    zIndex: 100,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  logoContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: "#10B981",
+    alignItems: "center",
     justifyContent: "center",
   },
-
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#000",
-  },
-
-  leftIcon: {
-    position: "absolute",
-    left: 20,
-    top: 60,
-  },
-
-  menuIcon: {
-    position: "absolute",
-    right: 20,
-    top: 60,
+  iconButton: {
+    padding: 4,
   },
 
   // MENU STYLES
   menuOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    alignItems: "flex-end", // Align menu to right
     justifyContent: "flex-start",
-    alignItems: "flex-end",
   },
   menuBox: {
-    width: 200,
+    width: 240,
     backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 15,
-    marginTop: 80,
-    marginRight: 15,
+    borderRadius: 16,
+    paddingVertical: 12,
+    marginRight: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
     elevation: 10,
   },
+  menuHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  menuTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#9CA3AF",
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   menuItem: {
-    fontSize: 18,
-    paddingVertical: 8,
-    color: "#000",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  menuItemBorder: {
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+    marginTop: 4,
+    paddingTop: 16,
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#374151",
   },
 });

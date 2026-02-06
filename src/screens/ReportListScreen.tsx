@@ -1,23 +1,28 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
-  SafeAreaView,
   View,
   Text,
   TouchableOpacity,
   FlatList,
   StyleSheet,
-  Dimensions,
   TextInput,
-  Platform,
   Alert,
+  Platform,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation, useFocusEffect, NavigationProp } from "@react-navigation/native";
 import { listAllReports, deleteReport } from "../utils/fileHelper";
-import { Edit2, Trash2 } from "lucide-react-native";
-
-const { width } = Dimensions.get("window");
+import {
+  Edit2,
+  Trash2,
+  Search,
+  Filter,
+  CalendarDays,
+  FileText,
+  ChevronRight
+} from "lucide-react-native";
 
 type ReportItem = {
   date: string;
@@ -26,19 +31,27 @@ type ReportItem = {
 };
 
 const ReportListScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NavigationProp<any>>();
+  const insets = useSafeAreaInsets();
+
   const [reports, setReports] = useState<ReportItem[]>([]);
-  const [activeRange, setActiveRange] = useState<"All" | "Weekly" | "Monthly">("Weekly");
+  const [activeRange, setActiveRange] = useState<"All" | "Weekly" | "Monthly">("All");
   const [search, setSearch] = useState("");
 
   const loadReports = async () => {
-    const allReports = await listAllReports();
-    setReports(allReports);
+    try {
+      const allReports = await listAllReports();
+      setReports(allReports);
+    } catch (err) {
+      console.log(err);
+    }
   };
 
-  useEffect(() => {
-    loadReports();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadReports();
+    }, [])
+  );
 
   const filterByRange = (data: ReportItem[]) => {
     const now = new Date();
@@ -52,13 +65,23 @@ const ReportListScreen: React.FC = () => {
     });
   };
 
-  let filteredData = filterByRange(reports).filter((item) => {
-    const text = search.toLowerCase().trim();
-    const date = new Date(item.date).toLocaleDateString().toLowerCase();
-    return date.includes(text);
-  });
+  const getFilteredData = () => {
+    let data = filterByRange(reports);
 
-  filteredData = filteredData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    if (search.trim()) {
+      const text = search.toLowerCase().trim();
+      data = data.filter((item) => {
+        const dateStr = new Date(item.date).toLocaleDateString().toLowerCase();
+        return dateStr.includes(text);
+      });
+    }
+
+    return data.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  };
+
+  const filteredData = getFilteredData();
 
   const handleDelete = (fileName: string) => {
     Alert.alert(
@@ -70,85 +93,124 @@ const ReportListScreen: React.FC = () => {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            await deleteReport(fileName);
-            loadReports();
+            const success = await deleteReport(fileName);
+            if (success) loadReports();
           },
         },
       ]
     );
   };
 
-  return (
-    <SafeAreaView style={styles.safe}>
-      {/* Range Tabs */}
-      <View style={styles.rangeRow}>
-        {(["All", "Weekly", "Monthly"] as const).map((r) => (
-          <TouchableOpacity
-            key={r}
-            onPress={() => setActiveRange(r)}
-            style={[styles.rangeTab, activeRange === r && styles.rangeTabActive]}
-          >
-            <Text style={[styles.rangeText, activeRange === r && styles.rangeTextActive]}>
-              {r}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+  const renderHeader = () => (
+    <View style={styles.headerContainer}>
+      <Text style={styles.headerTitle}>All Reports</Text>
 
-      {/* Search */}
-      <View style={styles.searchInputWrap}>
+      {/* Search Bar */}
+      <View style={styles.searchBar}>
+        <Search size={20} color="#9CA3AF" />
         <TextInput
-          placeholder="Search by date..."
-          placeholderTextColor="#6b7280"
+          placeholder="Search reports..."
+          placeholderTextColor="#9CA3AF"
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
         />
       </View>
 
-      {/* List */}
-      <View style={styles.listWrap}>
-        <FlatList
-          data={filteredData}
-          keyExtractor={(item) => item.fileName || item.date}
-          renderItem={({ item }) => (
+      {/* Filter Tabs */}
+      <View style={styles.filterRow}>
+        <View style={styles.filterLabelBox}>
+          <Filter size={16} color="#6B7280" />
+          <Text style={styles.filterLabel}>Filter:</Text>
+        </View>
+        {(["All", "Weekly", "Monthly"] as const).map((r) => (
+          <TouchableOpacity
+            key={r}
+            onPress={() => setActiveRange(r)}
+            style={[styles.filterTab, activeRange === r && styles.filterTabActive]}
+          >
+            <Text style={[styles.filterText, activeRange === r && styles.filterTextActive]}>
+              {r}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+      <FlatList
+        data={filteredData}
+        keyExtractor={(item) => item.fileName}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <CalendarDays size={48} color="#D1D5DB" />
+            <Text style={styles.emptyText}>No reports found</Text>
+            {activeRange !== 'All' && <Text style={styles.emptySubText}>Try changing the filter</Text>}
+          </View>
+        }
+        renderItem={({ item }) => {
+          const dateObj = new Date(item.date);
+          const month = dateObj.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
+          const day = dateObj.getDate();
+
+          return (
             <View style={styles.card}>
               <TouchableOpacity
-                style={{ flex: 1 }}
+                style={styles.cardMain}
                 onPress={() =>
                   navigation.navigate("ReportEdit", { fileName: item.fileName })
                 }
               >
-                <Text style={styles.cardTitle}>
-                  Date: {new Date(item.date).toLocaleDateString()}
-                </Text>
-                <Text style={styles.cardTitle}>
-                  Total Quantity: {item.total || 0} kit
-                </Text>
+                {/* CALENDAR LEAF DATE VISUAL */}
+                <View style={styles.calendarBox}>
+                  <View style={styles.calendarTop}>
+                    <Text style={styles.calendarMonth}>{month}</Text>
+                  </View>
+                  <View style={styles.calendarBody}>
+                    <Text style={styles.calendarDay}>{day}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>Production Report</Text>
+                  <Text style={styles.cardSubtitle}>
+                    {dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      Total: {item.total || 0}
+                    </Text>
+                  </View>
+                </View>
+
+                <ChevronRight size={20} color="#9CA3AF" />
               </TouchableOpacity>
 
-              {/* Edit + Delete icons */}
-              <View style={styles.iconRow}>
+              <View style={styles.cardActions}>
                 <TouchableOpacity
                   onPress={() =>
                     navigation.navigate("ReportEdit", { fileName: item.fileName })
                   }
-                  style={styles.iconBtn}
+                  style={styles.actionBtn}
                 >
-                  <Edit2 size={22} color="#1abc9c" />
+                  <Edit2 size={18} color="#6B7280" />
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   onPress={() => handleDelete(item.fileName)}
-                  style={styles.iconBtn}
+                  style={[styles.actionBtn, styles.deleteBtn]}
                 >
-                  <Trash2 size={22} color="#e74c3c" />
+                  <Trash2 size={18} color="#EF4444" />
                 </TouchableOpacity>
               </View>
             </View>
-          )}
-        />
-      </View>
+          );
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -156,60 +218,210 @@ const ReportListScreen: React.FC = () => {
 export default ReportListScreen;
 
 const styles = StyleSheet.create({
-  safe: {
+  container: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#F3F4F6",
+  },
+  listContent: {
+    paddingBottom: 40,
+  },
+
+  // Header
+  headerContainer: {
+    padding: 20,
+    backgroundColor: "#F3F4F6",
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#111827",
+    marginBottom: 16,
+  },
+  searchBar: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingTop: Platform.OS === "android" ? 15 : 0,
-  },
-
-  rangeRow: {
-    width: width * 0.9,
-    flexDirection: "row",
-    marginTop: 10,
-    gap: 8,
-  },
-  rangeTab: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "#2f8a6d",
-  },
-  rangeTabActive: { backgroundColor: "#2f8a6d" },
-  rangeText: { color: "#2f8a6d", fontWeight: "700" },
-  rangeTextActive: { color: "#fff" },
-
-  searchInputWrap: { width: width * 0.9, marginTop: 12 },
-  searchInput: {
-    height: 42,
-    borderRadius: 999,
-    backgroundColor: "#f3f4f6",
-    paddingHorizontal: 16,
-    fontSize: 14,
-  },
-
-  listWrap: { width: width * 0.9, marginTop: 15, flex: 1 },
-
-  card: {
-    width: "100%",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    paddingHorizontal: 16,
+    height: 48,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
     elevation: 2,
   },
-  cardTitle: { fontSize: 16, fontWeight: "700", marginBottom: 4 },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 16,
+    color: "#111827",
+  },
 
-  iconRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  iconBtn: { padding: 4 },
+  // Filters
+  filterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  filterLabelBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 4,
+    gap: 4
+  },
+  filterLabel: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontWeight: "600",
+  },
+  filterTab: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: "#E5E7EB",
+  },
+  filterTabActive: {
+    backgroundColor: "#10B981",
+  },
+  filterText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#4B5563",
+  },
+  filterTextActive: {
+    color: "#FFFFFF",
+  },
+
+  // Empty State
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 60,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#9CA3AF",
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: "#D1D5DB",
+    marginTop: 4,
+  },
+
+  // Card
+  card: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    padding: 12, // Compact padding
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+  },
+  cardMain: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 10,
+  },
+
+  // CALENDAR BOX STYLES
+  calendarBox: {
+    width: 50,
+    height: 56,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    overflow: 'hidden',
+    marginRight: 14,
+    backgroundColor: '#fff',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  calendarTop: {
+    backgroundColor: '#EF4444', // Distinct Red for calendar feel
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calendarMonth: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  calendarBody: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  calendarDay: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1F2937',
+  },
+
+  // Content
+  cardContent: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 2,
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginBottom: 6,
+  },
+  badge: {
+    alignSelf: 'flex-start',
+    backgroundColor: "#F0FDF4", // Light green bg
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#DCFCE7",
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#15803D", // Dark green text
+  },
+
+  // Actions
+  cardActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingLeft: 12,
+    borderLeftWidth: 1,
+    borderLeftColor: "#F3F4F6",
+  },
+  actionBtn: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#F9FAFB",
+  },
+  deleteBtn: {
+    backgroundColor: "#FEF2F2",
+  },
 });
